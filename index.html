@@ -2,1525 +2,1173 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Breath"/>
 <title>Breath — Asthma Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #1c2330;
-    --border: #30363d;
-    --text: #e6edf3;
-    --muted: #7d8590;
-    --accent: #3fb950;
-    --accent2: #58a6ff;
-    --warn: #f0883e;
-    --danger: #f85149;
-    --pf-good: #3fb950;
-    --pf-fair: #e3b341;
-    --pf-poor: #f85149;
-    --inhaler: #58a6ff;
-    --radius: 12px;
-    --font-serif: 'DM Serif Display', Georgia, serif;
-    --font-sans: 'DM Sans', system-ui, sans-serif;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 15px; line-height: 1.6; }
+:root {
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --surface3:#21262d;
+  --border:#30363d; --text:#e6edf3; --muted:#7d8590;
+  --green:#3fb950; --blue:#58a6ff; --warn:#f0883e; --danger:#f85149;
+  --pink:#e879f9; --pink-lo:rgba(232,121,249,.14);
+  --pf-good:#3fb950; --pf-fair:#e3b341; --pf-poor:#f85149;
+  --r:14px; --r-sm:10px;
+  --font-serif:'DM Serif Display',Georgia,serif;
+  --font-sans:'DM Sans',system-ui,sans-serif;
+  --shadow:0 6px 28px rgba(0,0,0,.55);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+  --mnav:68px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.6;min-height:100svh;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-  /* ── Login ── */
-  #login-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, #1a2f1a 0%, var(--bg) 70%);
-  }
-  .login-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 52px 48px;
-    width: 100%;
-    max-width: 420px;
-    box-shadow: var(--shadow);
-    text-align: center;
-  }
-  .login-icon { font-size: 48px; margin-bottom: 16px; }
-  .login-card h1 { font-family: var(--font-serif); font-size: 2rem; font-weight: 400; margin-bottom: 4px; }
-  .login-card p { color: var(--muted); margin-bottom: 32px; font-size: 0.9rem; }
-  .login-card input {
-    width: 100%;
-    padding: 14px 18px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--font-sans);
-    font-size: 1rem;
-    letter-spacing: 4px;
-    margin-bottom: 16px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .login-card input:focus { border-color: var(--accent); }
-  .login-card input::placeholder { letter-spacing: 0; color: var(--muted); }
-  .btn-primary {
-    width: 100%;
-    padding: 14px;
-    background: var(--accent);
-    color: #0d1117;
-    border: none;
-    border-radius: var(--radius);
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
-  }
-  .btn-primary:hover { opacity: 0.88; }
-  .btn-primary:active { transform: scale(0.98); }
-  .login-error { color: var(--danger); font-size: 0.85rem; margin-top: 12px; min-height: 20px; }
+/* ── Login ─────────────────────────────────────────────────── */
+#login-screen{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 20px;padding-top:calc(24px + var(--safe-t));background:radial-gradient(ellipse 80% 60% at 50% 0%,#1a2f1a 0%,var(--bg) 70%)}
+.lcard{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:48px 36px;width:100%;max-width:400px;box-shadow:var(--shadow);text-align:center}
+.lcard .licon{font-size:52px;margin-bottom:14px}
+.lcard h1{font-family:var(--font-serif);font-size:2.2rem;font-weight:400;margin-bottom:4px}
+.lcard p{color:var(--muted);margin-bottom:32px;font-size:.9rem}
+.lcard input{width:100%;padding:16px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-sans);font-size:1rem;letter-spacing:4px;margin-bottom:14px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.lcard input:focus{border-color:var(--green)}
+.lcard input::placeholder{letter-spacing:0;color:var(--muted)}
+.btn-primary{width:100%;padding:16px;background:var(--green);color:#0d1117;border:none;border-radius:var(--r);font-family:var(--font-sans);font-size:1rem;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;min-height:52px;-webkit-appearance:none}
+.btn-primary:active{transform:scale(.97);opacity:.88}
+.lerr{color:var(--danger);font-size:.85rem;margin-top:12px;min-height:20px}
 
-  /* ── App Shell ── */
-  #app { display: none; flex-direction: column; min-height: 100vh; }
-  #app.visible { display: flex; }
+/* ── App shell ─────────────────────────────────────────────── */
+#app{display:none;flex-direction:column;min-height:100svh}
+#app.visible{display:flex}
 
-  .app-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 28px;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    height: 60px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .app-header .brand { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 400; color: var(--accent); flex-shrink: 0; }
-  .app-header .brand span { color: var(--muted); font-size: 0.8rem; font-family: var(--font-sans); display: block; line-height: 1; }
-  nav { display: flex; gap: 4px; flex: 1; }
-  .nav-btn {
-    padding: 7px 16px;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.88rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .nav-btn:hover { background: var(--surface2); color: var(--text); }
-  .nav-btn.active { background: var(--surface2); color: var(--text); }
-  .nav-btn .dot { width: 6px; height: 6px; border-radius: 50%; }
-  .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-  .btn-logout {
-    padding: 6px 14px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.82rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+/* Desktop top nav */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;padding-top:var(--safe-t);display:flex;align-items:center;gap:18px;height:calc(60px + var(--safe-t));position:sticky;top:0;z-index:100}
+.brand{font-family:var(--font-serif);font-size:1.35rem;color:var(--green);flex-shrink:0}
+.brand span{color:var(--muted);font-size:.72rem;font-family:var(--font-sans);display:block;line-height:1}
+nav.dnav{display:flex;gap:3px;flex:1}
+.nav-btn{padding:8px 15px;border:none;border-radius:8px;background:transparent;color:var(--muted);font-family:var(--font-sans);font-size:.87rem;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;min-height:40px}
+.nav-btn:hover{background:var(--surface2);color:var(--text)}
+.nav-btn.active{background:var(--surface2);color:var(--text)}
+.ndot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hdr-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn-logout{padding:7px 13px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--font-sans);font-size:.8rem;cursor:pointer;transition:all .15s;min-height:36px}
+.btn-logout:hover{border-color:var(--danger);color:var(--danger)}
+#today-label{color:var(--muted);font-size:.8rem}
 
-  .app-content { flex: 1; padding: 28px; max-width: 1200px; margin: 0 auto; width: 100%; }
+/* Mobile header */
+.mhdr{display:none;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;padding-top:calc(10px + var(--safe-t));position:sticky;top:0;z-index:100;align-items:center;justify-content:space-between}
+.mhdr .brand{font-size:1.15rem}
+.mhdr .mhdate{font-size:.76rem;color:var(--muted)}
 
-  /* ── Tab Panels ── */
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+/* Mobile bottom nav */
+.mnav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(22,27,34,.96);border-top:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:200;padding-bottom:var(--safe-b)}
+.mnav-inner{display:flex;height:var(--mnav)}
+.mb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--muted);font-family:var(--font-sans);font-size:.65rem;font-weight:500;cursor:pointer;transition:color .15s;padding:6px 2px;min-height:44px}
+.mb .mi{font-size:1.35rem;line-height:1}
+.mb.active{color:var(--green)}
+.mb:nth-child(2).active{color:var(--blue)}
+.mb:nth-child(3).active{color:var(--warn)}
+.mb:nth-child(4).active{color:var(--pink)}
 
-  /* ── Dashboard ── */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 28px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 24px;
-  }
-  .stat-card .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
-  .stat-card .value { font-size: 2rem; font-family: var(--font-serif); font-weight: 400; }
-  .stat-card .sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
-  .stat-card.good .value { color: var(--pf-good); }
-  .stat-card.warn .value { color: var(--pf-fair); }
-  .stat-card.danger .value { color: var(--pf-poor); }
+/* Content */
+.app-content{flex:1;padding:22px;max-width:1200px;margin:0 auto;width:100%}
 
-  /* ── Log Entry Panel ── */
-  .log-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 28px;
-  }
-  @media (max-width: 700px) { .log-panel { grid-template-columns: 1fr; } }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-  }
-  .card h3 {
-    font-family: var(--font-serif);
-    font-size: 1.1rem;
-    font-weight: 400;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 100px; }
-  .form-group label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
-  .form-group input, .form-group textarea, .form-group select {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: var(--font-sans);
-    font-size: 0.9rem;
-    padding: 9px 12px;
-    outline: none;
-    transition: border-color 0.15s;
-    width: 100%;
-  }
-  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent2); }
-  .form-group textarea { resize: vertical; min-height: 72px; }
-  .form-group select option { background: var(--surface2); }
-  .btn-add {
-    padding: 10px 20px;
-    background: var(--accent2);
-    color: #0d1117;
-    border: none;
-    border-radius: 8px;
-    font-family: var(--font-sans);
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.15s;
-    margin-top: 4px;
-  }
-  .btn-add:hover { opacity: 0.85; }
-  .btn-add.green { background: var(--accent); }
-  .btn-add.orange { background: var(--warn); }
-  .btn-sm {
-    padding: 4px 10px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-sm:hover { border-color: var(--danger); color: var(--danger); }
+/* Tabs */
+.tab-panel{display:none}.tab-panel.active{display:block}
 
-  .recent-entries { margin-top: 14px; }
-  .entry-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.88rem;
-  }
-  .entry-item:last-child { border-bottom: none; }
-  .entry-time { color: var(--muted); font-size: 0.8rem; flex-shrink: 0; width: 48px; }
-  .entry-val { font-weight: 600; flex-shrink: 0; width: 48px; }
-  .entry-comment { color: var(--muted); flex: 1; }
-  .entry-actions { flex-shrink: 0; }
+/* ── Generic card & form ────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.card h3{font-family:var(--font-serif);font-size:1rem;font-weight:400;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.frow{display:flex;gap:10px;margin-bottom:11px;flex-wrap:wrap}
+.fg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:88px}
+.fg label{font-size:.71rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.fg input,.fg textarea,.fg select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:var(--font-sans);font-size:1rem;padding:10px 12px;outline:none;transition:border-color .15s;width:100%;-webkit-appearance:none;min-height:44px}
+.fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--blue)}
+.fg textarea{resize:vertical;min-height:74px;font-size:.93rem}
+.btn-add{padding:11px 18px;border:none;border-radius:var(--r-sm);font-family:var(--font-sans);font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;min-height:44px;white-space:nowrap;-webkit-appearance:none;color:#0d1117}
+.btn-add:active{opacity:.82;transform:scale(.97)}
+.btn-add.g{background:var(--green)}
+.btn-add.b{background:var(--blue)}
+.btn-add.p{background:var(--pink)}
+.btn-add.o{background:var(--warn)}
+.btn-sm{padding:5px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.76rem;cursor:pointer;min-height:34px;min-width:34px}
+.btn-sm:hover{border-color:var(--danger);color:var(--danger)}
 
-  /* PF Zone indicator */
-  .pf-zone {
-    display: inline-block;
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-top: 4px;
-  }
-  .pf-zone.green { background: var(--pf-good); }
-  .pf-zone.amber { background: var(--pf-fair); }
-  .pf-zone.red { background: var(--pf-poor); }
+/* ── Stats grid ─────────────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:18px}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
+.sc .sl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.sc .sv{font-size:1.85rem;font-family:var(--font-serif);font-weight:400;line-height:1.1}
+.sc .ss{font-size:.76rem;color:var(--muted);margin-top:2px}
+.sc.good .sv{color:var(--pf-good)}.sc.warn .sv{color:var(--pf-fair)}.sc.bad .sv{color:var(--pf-poor)}
 
-  /* ── Calendar Tab ── */
-  .calendar-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-  .calendar-controls h2 { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 400; }
-  .month-nav {
-    display: flex;
-    gap: 6px;
-    margin-left: auto;
-  }
-  .month-nav button {
-    width: 34px; height: 34px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
-  }
-  .month-nav button:hover { background: var(--surface2); }
+/* ── Log grid ───────────────────────────────────────────────── */
+.log-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:14px}
+.entries{margin-top:13px}
+.ei{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem}
+.ei:last-child{border-bottom:none}
+.etime{color:var(--muted);font-size:.77rem;flex-shrink:0;min-width:40px}
+.eval{font-weight:600;flex-shrink:0;min-width:42px}
+.ecmt{color:var(--muted);flex:1;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfdot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pfdot.green{background:var(--pf-good)}.pfdot.amber{background:var(--pf-fair)}.pfdot.red{background:var(--pf-poor)}
 
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-  }
-  .cal-header {
-    text-align: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 6px 0;
-  }
-  .cal-day {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 8px;
-    min-height: 88px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-    position: relative;
-    overflow: hidden;
-  }
-  .cal-day:hover { border-color: var(--accent2); background: var(--surface2); }
-  .cal-day.today { border-color: var(--accent); }
-  .cal-day.other-month { opacity: 0.35; pointer-events: none; }
-  .cal-day.has-data { border-color: var(--border); }
-  .cal-day .day-num {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-  .cal-day.today .day-num { color: var(--accent); }
-  .cal-pip {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.72rem;
-    margin-bottom: 3px;
-    color: var(--text);
-  }
-  .cal-pip .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .cal-pip.symptom { color: var(--warn); font-size: 0.68rem; }
+/* ── Symptoms ───────────────────────────────────────────────── */
+.sym-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:8px 0 14px}
+.sym-check{display:flex;align-items:center;gap:8px;padding:10px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;font-size:.83rem;user-select:none;min-height:44px}
+.sym-check.on{border-color:var(--warn);background:rgba(240,136,62,.1);color:var(--warn)}
+.sym-check input{display:none}
 
-  /* ── Modal ── */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 200;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px;
-    width: 100%;
-    max-width: 520px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow);
-    position: relative;
-  }
-  .modal h2 { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 400; margin-bottom: 4px; }
-  .modal .modal-date { color: var(--muted); font-size: 0.85rem; margin-bottom: 24px; }
-  .modal-close {
-    position: absolute;
-    top: 16px; right: 16px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    width: 32px; height: 32px;
-    color: var(--muted);
-    font-size: 1.1rem;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: color 0.15s;
-  }
-  .modal-close:hover { color: var(--danger); }
+/* ── Calendar ───────────────────────────────────────────────── */
+.cal-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.cal-hdr h2{font-family:var(--font-serif);font-size:1.4rem;font-weight:400}
+.mnav-cal{display:flex;gap:5px;margin-left:auto}
+.mnav-cal button{width:38px;height:38px;background:var(--surface);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;min-width:44px;min-height:44px}
+.mnav-cal button:hover{background:var(--surface2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.chdr{text-align:center;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:4px 0}
+.cday{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 6px;min-height:78px;cursor:pointer;transition:border-color .15s,background .15s;overflow:hidden}
+.cday:hover{border-color:var(--blue);background:var(--surface2)}
+.cday.today{border-color:var(--green)}
+.cday.other{opacity:.28;pointer-events:none}
+.cday .dn{font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+.cday.today .dn{color:var(--green)}
+.cpip{display:flex;align-items:center;gap:3px;font-size:.68rem;margin-bottom:2px;color:var(--text)}
+.cpip .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cpip.sym{color:var(--warn);font-size:.63rem}
 
-  .symptom-checks {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin: 8px 0 16px;
-  }
-  .symptom-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-size: 0.88rem;
-    user-select: none;
-  }
-  .symptom-check.checked { border-color: var(--warn); background: rgba(240,136,62,0.1); color: var(--warn); }
-  .symptom-check input { display: none; }
+/* ── Modal ──────────────────────────────────────────────────── */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.76);z-index:300;align-items:flex-end;justify-content:center}
+.mo.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px 22px;padding-bottom:calc(24px + var(--safe-b));width:100%;max-width:640px;max-height:92svh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:var(--shadow);position:relative;animation:su .28s cubic-bezier(.32,.72,0,1)}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal h2{font-family:var(--font-serif);font-size:1.25rem;font-weight:400;margin-bottom:3px}
+.modal .mdate{color:var(--muted);font-size:.8rem;margin-bottom:18px}
+.mclose{position:absolute;top:18px;right:18px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;color:var(--muted);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ms{margin-bottom:18px}
+.ms h4{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.mrl{display:flex;flex-direction:column;gap:5px;margin-bottom:7px}
+.mri{display:flex;align-items:center;gap:9px;font-size:.83rem;padding:7px 11px;background:var(--surface2);border-radius:9px}
+.mri .mv{font-weight:700;font-size:.96rem}
+.mri .mt{color:var(--muted);font-size:.74rem;width:38px;flex-shrink:0}
+.mri .mc{color:var(--muted);flex:1;font-size:.8rem}
+.msave{width:100%;padding:14px;background:var(--green);color:#0d1117;border:none;border-radius:12px;font-family:var(--font-sans);font-size:.95rem;font-weight:600;cursor:pointer;margin-top:6px;min-height:52px}
 
-  .modal-section { margin-bottom: 20px; }
-  .modal-section h4 { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
-  .modal-reading-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-  .modal-reading-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.88rem;
-    padding: 8px 12px;
-    background: var(--surface2);
-    border-radius: 8px;
-  }
-  .modal-reading-item .val { font-weight: 700; font-size: 1rem; }
-  .modal-reading-item .time { color: var(--muted); font-size: 0.78rem; width: 42px; }
-  .modal-reading-item .comment { color: var(--muted); flex: 1; }
-  .modal-save {
-    width: 100%;
-    padding: 12px;
-    background: var(--accent);
-    color: #0d1117;
-    border: none;
-    border-radius: 10px;
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: opacity 0.15s;
-  }
-  .modal-save:hover { opacity: 0.85; }
+/* ── Graph tab ──────────────────────────────────────────────── */
+.gctrls{display:flex;gap:9px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.gctrls h2{font-family:var(--font-serif);font-size:1.4rem;font-weight:400;margin-right:4px}
+.rbtn{padding:6px 13px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--font-sans);font-size:.8rem;cursor:pointer;transition:all .15s;min-height:36px}
+.rbtn.active{background:var(--surface2);border-color:var(--blue);color:var(--text)}
+.glegend{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.gli{display:flex;align-items:center;gap:6px;font-size:.79rem;color:var(--muted)}
+.gll{width:20px;height:3px;border-radius:2px}
+.ccont{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;position:relative;overflow:hidden}
+#graph-canvas{width:100%;display:block;cursor:crosshair;touch-action:none}
+.zlegend{display:flex;gap:12px;margin-top:12px;font-size:.71rem;color:var(--muted);flex-wrap:wrap}
+.zi{display:flex;align-items:center;gap:4px}
+.zs{width:11px;height:8px;border-radius:2px}
 
-  /* ── Graph Tab ── */
-  .graph-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-  .graph-controls h2 { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 400; margin-right: 8px; }
-  .range-btn {
-    padding: 6px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 0.82rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .range-btn.active { background: var(--surface2); border-color: var(--accent2); color: var(--text); }
-  .range-btn:hover { border-color: var(--accent2); color: var(--text); }
+/* ── Analytics tab ──────────────────────────────────────────── */
+.an-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.an-hdr h2{font-family:var(--font-serif);font-size:1.4rem;font-weight:400}
+.rsel{display:flex;gap:5px;flex-wrap:wrap}
+.rsel button{padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--font-sans);font-size:.8rem;cursor:pointer;transition:all .15s;min-height:36px}
+.rsel button.active{background:var(--surface2);border-color:var(--pink);color:var(--text)}
+.agrid{display:grid;gap:12px;margin-bottom:12px}
+.agrid.c4{grid-template-columns:repeat(4,1fr)}
+.agrid.c2{grid-template-columns:1fr 1fr}
+.agrid.c1{grid-template-columns:1fr}
+.acard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.acard h4{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.acard .av{font-size:2.1rem;font-family:var(--font-serif);font-weight:400;line-height:1.1}
+.acard .as{font-size:.78rem;color:var(--muted);margin-top:2px}
+.acard .atitle{font-family:var(--font-serif);font-size:1rem;font-weight:400;margin-bottom:4px}
+.acard.good .av{color:var(--pf-good)}.acard.warn .av{color:var(--pf-fair)}.acard.bad .av{color:var(--pf-poor)}.acard.pink .av{color:var(--pink)}.acard.blue .av{color:var(--blue)}
+.tbars{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.trow{display:flex;align-items:center;gap:10px}
+.tlbl{font-size:.79rem;color:var(--text);min-width:118px;flex-shrink:0}
+.twrap{flex:1;background:var(--surface2);border-radius:6px;height:28px;overflow:hidden;position:relative}
+.tfill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:9px;font-size:.76rem;font-weight:600;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.tmeta{font-size:.73rem;color:var(--muted);min-width:68px;text-align:right;flex-shrink:0}
+.acwrap{position:relative;width:100%}
+.acwrap canvas{display:block;width:100%}
+.wbars{display:flex;align-items:flex-end;gap:4px;height:90px;margin-top:10px}
+.wbc{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.wb{width:100%;border-radius:4px 4px 0 0;min-height:3px}
+.wbv{font-size:.6rem;color:var(--muted)}
+.wbl{font-size:.58rem;color:var(--muted);text-align:center}
+.adh-wrap{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:10px}
+.adh-ring{position:relative;width:88px;height:88px;flex-shrink:0}
+.adh-ring canvas{position:absolute;inset:0}
+.adh-rl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:1.25rem;color:var(--pink)}
+.adh-meta{display:flex;flex-direction:column;gap:5px}
+.adh-mr{font-size:.8rem;color:var(--muted)}
+.adh-mr span{color:var(--text);font-weight:600}
+.ilist{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.ii{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;background:var(--surface2);border-radius:12px;border-left:3px solid var(--border);font-size:.86rem;line-height:1.5}
+.ii.good{border-left-color:var(--pf-good)}.ii.warn{border-left-color:var(--pf-fair)}.ii.info{border-left-color:var(--blue)}.ii.pink{border-left-color:var(--pink)}
+.ii .ico{font-size:1.15rem;flex-shrink:0;margin-top:1px}
 
-  .graph-legend {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; color: var(--muted); }
-  .legend-line { width: 24px; height: 3px; border-radius: 2px; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+/* ── Tooltip ────────────────────────────────────────────────── */
+.tt{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:.8rem;pointer-events:none;z-index:400;max-width:210px;box-shadow:var(--shadow);display:none}
+.tt .ttd{font-weight:600;margin-bottom:5px;color:var(--text)}
+.tt .ttr{display:flex;justify-content:space-between;gap:14px;color:var(--muted);margin-bottom:2px}
+.tt .ttr span:last-child{color:var(--text);font-weight:500}
 
-  .chart-container {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    position: relative;
-    overflow: visible;
-  }
-  #graph-canvas { width: 100%; display: block; cursor: crosshair; }
+/* ── Utility ────────────────────────────────────────────────── */
+.loading{display:flex;align-items:center;justify-content:center;padding:28px;color:var(--muted);gap:9px;font-size:.88rem}
+.spin{width:17px;height:17px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--muted);padding:20px;font-size:.86rem}
+.flash{position:fixed;bottom:calc(20px + var(--safe-b));right:20px;background:var(--green);color:#0d1117;padding:11px 18px;border-radius:12px;font-size:.86rem;font-weight:600;z-index:500;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);max-width:calc(100vw - 40px)}
+.flash.show{transform:translateY(0);opacity:1}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-hdr h3{font-family:var(--font-serif);font-size:1rem;font-weight:400}
+p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
 
-  .tooltip {
-    position: fixed;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 0.82rem;
-    pointer-events: none;
-    z-index: 300;
-    max-width: 220px;
-    box-shadow: var(--shadow);
-    display: none;
-  }
-  .tooltip .tt-date { font-weight: 600; margin-bottom: 6px; color: var(--text); }
-  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); margin-bottom: 3px; }
-  .tooltip .tt-row span:last-child { color: var(--text); font-weight: 500; }
-  .tooltip .tt-comment { color: var(--muted); font-style: italic; margin-top: 6px; font-size: 0.78rem; border-top: 1px solid var(--border); padding-top: 6px; }
-
-  /* Zone bands legend */
-  .zone-bands-legend {
-    display: flex;
-    gap: 16px;
-    margin-top: 16px;
-    font-size: 0.75rem;
-    color: var(--muted);
-    flex-wrap: wrap;
-  }
-  .zone-item { display: flex; align-items: center; gap: 5px; }
-  .zone-swatch { width: 14px; height: 10px; border-radius: 3px; }
-
-  /* ── Loading ── */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    color: var(--muted);
-    gap: 10px;
-    font-size: 0.9rem;
-  }
-  .spinner {
-    width: 18px; height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .empty-state { text-align: center; color: var(--muted); padding: 32px; font-size: 0.9rem; }
-
-  .success-flash {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--accent);
-    color: #0d1117;
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    z-index: 500;
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  .success-flash.show { transform: translateY(0); opacity: 1; }
+/* ── Responsive ─────────────────────────────────────────────── */
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .log-grid{grid-template-columns:1fr 1fr}
+  .agrid.c4{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .app-header{display:none}.mhdr{display:flex}.mnav{display:block}
+  .app-content{padding:14px;padding-bottom:calc(var(--mnav) + var(--safe-b) + 14px)}
+  .log-grid{grid-template-columns:1fr}
+  .agrid.c2{grid-template-columns:1fr}
+  .agrid.c4{grid-template-columns:1fr 1fr}
+  .cday{min-height:62px;padding:5px}
+  .modal{border-radius:24px 24px 0 0}
+  .flash{left:14px;right:14px;text-align:center}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .sc .sv{font-size:1.6rem}
+  .agrid.c4{grid-template-columns:1fr 1fr}
+  .tlbl{min-width:90px;font-size:.74rem}
+}
 </style>
 </head>
 <body>
 
-<!-- ══ LOGIN SCREEN ══════════════════════════════════════════════ -->
+<!-- LOGIN -->
 <div id="login-screen">
-  <div class="login-card">
-    <div class="login-icon">🌬️</div>
+  <div class="lcard">
+    <div class="licon">🌬️</div>
     <h1>Breath</h1>
     <p>Your personal asthma tracker</p>
     <input type="password" id="pwd-input" placeholder="Enter password" autocomplete="current-password"/>
     <button class="btn-primary" onclick="doLogin()">Sign In</button>
-    <div class="login-error" id="login-error"></div>
+    <div class="lerr" id="lerr"></div>
   </div>
 </div>
 
-<!-- ══ APP ═══════════════════════════════════════════════════════ -->
+<!-- APP -->
 <div id="app">
+
+  <!-- Desktop header -->
   <header class="app-header">
     <div class="brand">Breath <span>Asthma Tracker</span></div>
-    <nav>
-      <button class="nav-btn active" onclick="showTab('dashboard', this)">
-        <span class="dot" style="background:var(--accent)"></span>Today
-      </button>
-      <button class="nav-btn" onclick="showTab('calendar', this)">
-        <span class="dot" style="background:var(--accent2)"></span>Calendar
-      </button>
-      <button class="nav-btn" onclick="showTab('graphs', this)">
-        <span class="dot" style="background:var(--warn)"></span>Graphs
-      </button>
+    <nav class="dnav">
+      <button class="nav-btn active" onclick="showTab('dashboard',this)"><span class="ndot" style="background:var(--green)"></span>Today</button>
+      <button class="nav-btn" onclick="showTab('calendar',this)"><span class="ndot" style="background:var(--blue)"></span>Calendar</button>
+      <button class="nav-btn" onclick="showTab('graphs',this)"><span class="ndot" style="background:var(--warn)"></span>Graphs</button>
+      <button class="nav-btn" onclick="showTab('analytics',this)"><span class="ndot" style="background:var(--pink)"></span>Analytics</button>
     </nav>
-    <div class="header-actions">
-      <span id="today-label" style="color:var(--muted);font-size:0.82rem;"></span>
+    <div class="hdr-right">
+      <span id="today-label"></span>
       <button class="btn-logout" onclick="logout()">Sign out</button>
     </div>
   </header>
 
+  <!-- Mobile header -->
+  <header class="mhdr">
+    <div class="brand">Breath 🌬️</div>
+    <div class="mhdate" id="mhdate"></div>
+  </header>
+
   <main class="app-content">
 
-    <!-- ── DASHBOARD TAB ───────────────────────────────────────── -->
+    <!-- TODAY TAB -->
     <div id="tab-dashboard" class="tab-panel active">
+      <div class="stats-grid">
+        <div class="sc" id="sc-pf"><div class="sl">Best peak flow</div><div class="sv">—</div><div class="ss">Personal best: 620</div></div>
+        <div class="sc" id="sc-zone"><div class="sl">Zone</div><div class="sv">—</div><div class="ss">% of personal best</div></div>
+        <div class="sc" id="sc-blue"><div class="sl">Blue inhaler today</div><div class="sv">—</div><div class="ss">Puffs used</div></div>
+        <div class="sc" id="sc-pink"><div class="sl">Pink inhaler today</div><div class="sv">—</div><div class="ss">Preventer dose</div></div>
+      </div>
 
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card" id="stat-pf">
-          <div class="label">Today's best peak flow</div>
-          <div class="value">—</div>
-          <div class="sub">Personal best: 620 L/min</div>
+      <div class="log-grid">
+        <!-- Peak flow -->
+        <div class="card">
+          <h3>💨 Peak Flow</h3>
+          <div class="frow">
+            <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="pf-time"/></div>
+            <div class="fg"><label>Reading (L/min)</label><input type="number" id="pf-reading" placeholder="e.g. 580" min="50" max="900" inputmode="numeric"/></div>
+          </div>
+          <div class="fg" style="margin-bottom:11px"><label>Comment</label><input type="text" id="pf-comment" placeholder="optional"/></div>
+          <button class="btn-add g" onclick="logPF()">+ Add Reading</button>
+          <div class="entries" id="pf-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
-        <div class="stat-card" id="stat-zone">
-          <div class="label">Zone</div>
-          <div class="value">—</div>
-          <div class="sub">Based on % of personal best</div>
+        <!-- Blue inhaler -->
+        <div class="card">
+          <h3>💙 Blue Inhaler <span style="font-size:.68rem;color:var(--muted);font-family:var(--font-sans)">Reliever</span></h3>
+          <div class="frow">
+            <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="blue-time"/></div>
+            <div class="fg" style="max-width:90px"><label>Puffs</label><input type="number" id="blue-puffs" value="2" min="1" max="20" inputmode="numeric"/></div>
+          </div>
+          <div class="fg" style="margin-bottom:11px"><label>Reason</label><input type="text" id="blue-reason" placeholder="e.g. wheeze, exercise"/></div>
+          <button class="btn-add b" onclick="logBlue()">+ Log Use</button>
+          <div class="entries" id="blue-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
-        <div class="stat-card" id="stat-inhaler">
-          <div class="label">Blue inhaler today</div>
-          <div class="value">—</div>
-          <div class="sub">Puffs used</div>
-        </div>
-        <div class="stat-card" id="stat-week">
-          <div class="label">7-day avg peak flow</div>
-          <div class="value">—</div>
-          <div class="sub">Rolling 7 days</div>
+        <!-- Pink inhaler -->
+        <div class="card" style="border-color:rgba(232,121,249,.3)">
+          <h3>🌸 Pink Inhaler <span style="font-size:.68rem;color:var(--muted);font-family:var(--font-sans)">Preventer</span></h3>
+          <div class="frow">
+            <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="pink-time"/></div>
+            <div class="fg" style="max-width:90px"><label>Puffs</label><input type="number" id="pink-puffs" value="2" min="1" max="10" inputmode="numeric"/></div>
+          </div>
+          <div class="fg" style="margin-bottom:11px"><label>Note</label><input type="text" id="pink-comment" placeholder="e.g. morning dose"/></div>
+          <button class="btn-add p" onclick="logPink()">+ Log Dose</button>
+          <div class="entries" id="pink-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
       </div>
 
-      <div class="log-panel">
-        <!-- Peak Flow Entry -->
-        <div class="card">
-          <h3>💨 Log Peak Flow</h3>
-          <div class="form-row">
-            <div class="form-group" style="max-width:100px;">
-              <label>Time</label>
-              <input type="time" id="pf-time"/>
-            </div>
-            <div class="form-group" style="max-width:120px;">
-              <label>Reading (L/min)</label>
-              <input type="number" id="pf-reading" placeholder="e.g. 580" min="50" max="900"/>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Comment (optional)</label>
-            <input type="text" id="pf-comment" placeholder="e.g. after morning meds"/>
-          </div>
-          <button class="btn-add green" onclick="logPeakFlow()">+ Add Reading</button>
-
-          <div class="recent-entries" id="pf-today-list">
-            <div class="loading"><div class="spinner"></div>Loading…</div>
-          </div>
-        </div>
-
-        <!-- Inhaler Entry -->
-        <div class="card">
-          <h3>💙 Log Inhaler Use</h3>
-          <div class="form-row">
-            <div class="form-group" style="max-width:100px;">
-              <label>Time</label>
-              <input type="time" id="inh-time"/>
-            </div>
-            <div class="form-group" style="max-width:90px;">
-              <label>Puffs</label>
-              <input type="number" id="inh-puffs" value="2" min="1" max="10"/>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Reason (optional)</label>
-            <input type="text" id="inh-reason" placeholder="e.g. pre-exercise, wheeze"/>
-          </div>
-          <button class="btn-add" onclick="logInhaler()">+ Log Use</button>
-
-          <div class="recent-entries" id="inh-today-list">
-            <div class="loading"><div class="spinner"></div>Loading…</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Daily Note / Symptoms -->
+      <!-- Notes & Symptoms -->
       <div class="card">
         <h3>📝 Today's Notes & Symptoms</h3>
-        <div style="margin-bottom:14px;">
-          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;">Symptoms today</div>
-          <div class="symptom-checks" id="dash-symptom-checks">
-            <label class="symptom-check" data-sym="wheeze"><input type="checkbox" value="wheeze"/>😮‍💨 Wheeze</label>
-            <label class="symptom-check" data-sym="cough"><input type="checkbox" value="cough"/>🤧 Cough</label>
-            <label class="symptom-check" data-sym="tightness"><input type="checkbox" value="tightness"/>🫁 Chest tightness</label>
-            <label class="symptom-check" data-sym="breathless"><input type="checkbox" value="breathless"/>💨 Breathlessness</label>
-            <label class="symptom-check" data-sym="nighttime"><input type="checkbox" value="nighttime"/>🌙 Night symptoms</label>
-            <label class="symptom-check" data-sym="exercise"><input type="checkbox" value="exercise"/>🏃 Exercise triggered</label>
-          </div>
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.06em;font-weight:500">Symptoms today</div>
+        <div class="sym-grid" id="dsyms">
+          <label class="sym-check" data-s="wheeze"><input type="checkbox"/>😮‍💨 Wheeze</label>
+          <label class="sym-check" data-s="cough"><input type="checkbox"/>🤧 Cough</label>
+          <label class="sym-check" data-s="tight"><input type="checkbox"/>🫁 Chest tightness</label>
+          <label class="sym-check" data-s="breathless"><input type="checkbox"/>💨 Breathlessness</label>
+          <label class="sym-check" data-s="night"><input type="checkbox"/>🌙 Night symptoms</label>
+          <label class="sym-check" data-s="exercise"><input type="checkbox"/>🏃 Exercise triggered</label>
         </div>
-        <div class="form-group" style="margin-bottom:14px;">
-          <label>Daily note</label>
-          <textarea id="daily-note" placeholder="How are you feeling today? Any triggers, changes in medication, notable events…" rows="3"></textarea>
-        </div>
-        <button class="btn-add green" onclick="saveDailyNote()">Save Today's Entry</button>
+        <div class="fg" style="margin-bottom:13px"><label>Daily note</label><textarea id="daily-note" rows="3" placeholder="How are you feeling? Any triggers, changes, notable events…"></textarea></div>
+        <button class="btn-add g" onclick="saveNote()">Save Today's Entry</button>
       </div>
-
     </div>
 
-    <!-- ── CALENDAR TAB ────────────────────────────────────────── -->
+    <!-- CALENDAR TAB -->
     <div id="tab-calendar" class="tab-panel">
-      <div class="calendar-controls">
-        <h2 id="cal-month-label">Month</h2>
-        <div class="month-nav">
+      <div class="cal-hdr">
+        <h2 id="cal-lbl">Month</h2>
+        <div class="mnav-cal">
           <button onclick="changeMonth(-1)">‹</button>
           <button onclick="changeMonth(1)">›</button>
         </div>
       </div>
-      <div class="calendar-grid" id="calendar-grid">
-        <div class="cal-header">Mon</div>
-        <div class="cal-header">Tue</div>
-        <div class="cal-header">Wed</div>
-        <div class="cal-header">Thu</div>
-        <div class="cal-header">Fri</div>
-        <div class="cal-header">Sat</div>
-        <div class="cal-header">Sun</div>
+      <div class="cal-grid" id="cal-grid">
+        <div class="chdr">Mon</div><div class="chdr">Tue</div><div class="chdr">Wed</div>
+        <div class="chdr">Thu</div><div class="chdr">Fri</div><div class="chdr">Sat</div><div class="chdr">Sun</div>
       </div>
     </div>
 
-    <!-- ── GRAPHS TAB ──────────────────────────────────────────── -->
+    <!-- GRAPHS TAB -->
     <div id="tab-graphs" class="tab-panel">
-      <div class="graph-controls">
-        <h2>Peak Flow & Inhaler</h2>
-        <button class="range-btn" onclick="setRange(7, this)">7d</button>
-        <button class="range-btn" onclick="setRange(30, this)">30d</button>
-        <button class="range-btn" onclick="setRange(90, this)">3m</button>
-        <button class="range-btn active" onclick="setRange(0, this)">All time</button>
+      <div class="gctrls">
+        <h2>Peak Flow & Inhalers</h2>
+        <button class="rbtn" onclick="setGRange(7,this)">7d</button>
+        <button class="rbtn" onclick="setGRange(14,this)">14d</button>
+        <button class="rbtn" onclick="setGRange(30,this)">30d</button>
+        <button class="rbtn active" onclick="setGRange(0,this)">All</button>
       </div>
-      <div class="graph-legend">
-        <div class="legend-item">
-          <div class="legend-line" style="background:var(--pf-good)"></div>
-          Peak flow reading
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:var(--pf-good)"></div>
-          Good zone (&ge;80%)
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:var(--pf-fair)"></div>
-          Fair zone (50–79%)
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:var(--pf-poor)"></div>
-          Poor zone (&lt;50%)
-        </div>
-        <div class="legend-item">
-          <div class="legend-line" style="background:var(--inhaler);height:2px;border-top:2px dashed var(--inhaler);background:transparent;width:24px;"></div>
-          <div class="legend-dot" style="background:var(--inhaler);opacity:0.7"></div>
-          Inhaler puffs (right axis)
+      <div class="glegend">
+        <div class="gli"><div class="gll" style="background:var(--pf-good)"></div>Peak Flow (avg)</div>
+        <div class="gli"><div class="gll" style="background:var(--blue);opacity:.7;height:10px;border-radius:3px"></div>Blue inhaler puffs</div>
+        <div class="gli"><div class="gll" style="background:var(--pink);opacity:.7;height:10px;border-radius:3px"></div>Pink inhaler puffs</div>
+      </div>
+      <div class="ccont"><canvas id="graph-canvas" height="300"></canvas></div>
+      <div class="zlegend">
+        <div class="zi"><div class="zs" style="background:rgba(63,185,80,.22)"></div>Green ≥80% PB</div>
+        <div class="zi"><div class="zs" style="background:rgba(227,179,65,.22)"></div>Amber 50–79%</div>
+        <div class="zi"><div class="zs" style="background:rgba(248,81,73,.22)"></div>Red &lt;50%</div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS TAB -->
+    <div id="tab-analytics" class="tab-panel">
+      <div class="an-hdr">
+        <h2>Analytics</h2>
+        <div class="rsel">
+          <button onclick="setARange(30,this)">30d</button>
+          <button onclick="setARange(60,this)">60d</button>
+          <button class="active" onclick="setARange(90,this)">90d</button>
+          <button onclick="setARange(0,this)">All</button>
         </div>
       </div>
-      <div class="chart-container">
-        <canvas id="graph-canvas"></canvas>
+
+      <!-- Overview KPI cards -->
+      <div class="agrid c4" style="margin-bottom:12px">
+        <div class="acard pink"><h4>Pink Adherence</h4><div class="av" id="an-adh">—</div><div class="as" id="an-adh-s">days tracked</div></div>
+        <div class="acard blue"><h4>Avg Pink Time</h4><div class="av" id="an-ptime">—</div><div class="as">first dose of day</div></div>
+        <div class="acard" id="an-trend-c"><h4>PF Trend</h4><div class="av" id="an-trend">—</div><div class="as" id="an-trend-s">vs earlier period</div></div>
+        <div class="acard"><h4>Avg Blue / Day</h4><div class="av" id="an-bavg">—</div><div class="as">puffs per day used</div></div>
       </div>
-      <div class="zone-bands-legend">
-        <div class="zone-item"><div class="zone-swatch" style="background:rgba(63,185,80,0.15)"></div>Green zone: &ge;496 L/min (&ge;80%)</div>
-        <div class="zone-item"><div class="zone-swatch" style="background:rgba(227,179,65,0.15)"></div>Amber zone: 310–495 L/min (50–79%)</div>
-        <div class="zone-item"><div class="zone-swatch" style="background:rgba(248,81,73,0.15)"></div>Red zone: &lt;310 L/min (&lt;50%)</div>
+
+      <!-- Pink timing → Blue use -->
+      <div class="acard" style="margin-bottom:12px">
+        <div class="sec-hdr"><h3>🌸 → 💙 Does Earlier Pink Mean Less Blue?</h3></div>
+        <p class="sub">Avg blue inhaler puffs per day, by time you took your pink inhaler</p>
+        <div id="t-blue" class="tbars"><div class="loading"><div class="spin"></div></div></div>
+      </div>
+
+      <!-- Pink timing → Peak flow -->
+      <div class="acard" style="margin-bottom:12px">
+        <div class="sec-hdr"><h3>🌸 → 💨 Does Earlier Pink Mean Better Peak Flow?</h3></div>
+        <p class="sub">Avg peak flow (L/min), by time you took your pink inhaler</p>
+        <div id="t-pf" class="tbars"><div class="loading"><div class="spin"></div></div></div>
+      </div>
+
+      <!-- Hourly charts row -->
+      <div class="agrid c2" style="margin-bottom:12px">
+        <div class="acard">
+          <h4>Lung Function by Hour</h4><p class="sub">Avg peak flow reading per hour of day</p>
+          <div class="acwrap" style="height:145px"><canvas id="c-hpf"></canvas></div>
+        </div>
+        <div class="acard">
+          <h4>Blue Inhaler by Hour</h4><p class="sub">When you most need your reliever</p>
+          <div class="acwrap" style="height:145px"><canvas id="c-hblue"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Weekly trend + adherence ring -->
+      <div class="agrid c2" style="margin-bottom:12px">
+        <div class="acard">
+          <h4>Weekly Peak Flow Trend</h4>
+          <div id="wbars" class="wbars"><div class="loading" style="flex:1"><div class="spin"></div></div></div>
+        </div>
+        <div class="acard">
+          <h4>Pink Inhaler Adherence</h4>
+          <div id="adh-ring" class="adh-wrap"><div class="loading"><div class="spin"></div></div></div>
+        </div>
+      </div>
+
+      <!-- Blue by day-of-week -->
+      <div class="acard" style="margin-bottom:12px">
+        <h4>Blue Inhaler — Worst Day of Week</h4><p class="sub">Average puffs per day of week</p>
+        <div class="acwrap" style="height:115px"><canvas id="c-dow"></canvas></div>
+      </div>
+
+      <!-- Insights -->
+      <div class="acard">
+        <div class="sec-hdr"><h3>💡 Insights</h3></div>
+        <div id="insights" class="ilist"><div class="loading"><div class="spin"></div>Analysing…</div></div>
       </div>
     </div>
 
   </main>
+
+  <!-- Mobile bottom nav -->
+  <nav class="mnav">
+    <div class="mnav-inner">
+      <button class="mb active" onclick="showTab('dashboard',this)" data-tab="dashboard"><span class="mi">🏠</span><span>Today</span></button>
+      <button class="mb" onclick="showTab('calendar',this)" data-tab="calendar"><span class="mi">📅</span><span>Calendar</span></button>
+      <button class="mb" onclick="showTab('graphs',this)" data-tab="graphs"><span class="mi">📈</span><span>Graphs</span></button>
+      <button class="mb" onclick="showTab('analytics',this)" data-tab="analytics"><span class="mi">🔬</span><span>Insights</span></button>
+      <button class="mb" onclick="logout()"><span class="mi">🚪</span><span>Sign out</span></button>
+    </div>
+  </nav>
 </div>
 
-<!-- ══ DAY MODAL ═════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="day-modal">
+<!-- CALENDAR MODAL -->
+<div class="mo" id="day-modal">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <h2 id="modal-title">Day</h2>
-    <div class="modal-date" id="modal-date-label"></div>
-
-    <div class="modal-section">
-      <h4>Symptoms</h4>
-      <div class="symptom-checks" id="modal-symptom-checks">
-        <label class="symptom-check" data-sym="wheeze"><input type="checkbox" value="wheeze"/>😮‍💨 Wheeze</label>
-        <label class="symptom-check" data-sym="cough"><input type="checkbox" value="cough"/>🤧 Cough</label>
-        <label class="symptom-check" data-sym="tightness"><input type="checkbox" value="tightness"/>🫁 Tightness</label>
-        <label class="symptom-check" data-sym="breathless"><input type="checkbox" value="breathless"/>💨 Breathless</label>
-        <label class="symptom-check" data-sym="nighttime"><input type="checkbox" value="nighttime"/>🌙 Night symptoms</label>
-        <label class="symptom-check" data-sym="exercise"><input type="checkbox" value="exercise"/>🏃 Exercise triggered</label>
+    <div class="mhandle"></div>
+    <button class="mclose" onclick="closeModal()">✕</button>
+    <h2 id="m-title">—</h2>
+    <div class="mdate" id="m-date"></div>
+    <div class="ms"><h4>Symptoms</h4>
+      <div class="sym-grid" id="msyms">
+        <label class="sym-check" data-s="wheeze"><input type="checkbox"/>😮‍💨 Wheeze</label>
+        <label class="sym-check" data-s="cough"><input type="checkbox"/>🤧 Cough</label>
+        <label class="sym-check" data-s="tight"><input type="checkbox"/>🫁 Tightness</label>
+        <label class="sym-check" data-s="breathless"><input type="checkbox"/>💨 Breathless</label>
+        <label class="sym-check" data-s="night"><input type="checkbox"/>🌙 Night symptoms</label>
+        <label class="sym-check" data-s="exercise"><input type="checkbox"/>🏃 Exercise triggered</label>
       </div>
     </div>
-
-    <div class="modal-section">
-      <h4>Daily Note</h4>
-      <div class="form-group">
-        <textarea id="modal-note" rows="3" placeholder="How were you feeling?"></textarea>
+    <div class="ms"><h4>Daily Note</h4><div class="fg"><textarea id="m-note" rows="3" placeholder="How were you feeling?"></textarea></div></div>
+    <div class="ms"><h4>💨 Peak Flow</h4>
+      <div class="mrl" id="m-pf-list"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="max-width:88px"><label>Time</label><input type="time" id="m-pf-t"/></div>
+        <div class="fg" style="max-width:96px"><label>Reading</label><input type="number" id="m-pf-v" placeholder="L/min" inputmode="numeric"/></div>
+        <div class="fg" style="flex:1;min-width:100px"><label>Comment</label><input type="text" id="m-pf-c" placeholder="Optional"/></div>
+        <button class="btn-add g" style="margin-bottom:1px" onclick="mAddPF()">+</button>
       </div>
     </div>
-
-    <div class="modal-section">
-      <h4>Peak Flow Readings</h4>
-      <div class="modal-reading-list" id="modal-pf-list"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-        <div class="form-group" style="max-width:90px;"><label>Time</label><input type="time" id="modal-pf-time"/></div>
-        <div class="form-group" style="max-width:100px;"><label>Reading</label><input type="number" id="modal-pf-val" placeholder="L/min"/></div>
-        <div class="form-group" style="flex:1;min-width:120px;"><label>Comment</label><input type="text" id="modal-pf-comment" placeholder="Optional"/></div>
-        <button class="btn-add green" style="margin-bottom:1px;" onclick="modalAddPF()">+</button>
+    <div class="ms"><h4>💙 Blue Inhaler</h4>
+      <div class="mrl" id="m-blue-list"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="max-width:88px"><label>Time</label><input type="time" id="m-blue-t"/></div>
+        <div class="fg" style="max-width:78px"><label>Puffs</label><input type="number" id="m-blue-p" value="2" min="1" max="20" inputmode="numeric"/></div>
+        <div class="fg" style="flex:1;min-width:100px"><label>Reason</label><input type="text" id="m-blue-r" placeholder="Optional"/></div>
+        <button class="btn-add b" style="margin-bottom:1px" onclick="mAddBlue()">+</button>
       </div>
     </div>
-
-    <div class="modal-section">
-      <h4>Inhaler Use</h4>
-      <div class="modal-reading-list" id="modal-inh-list"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-        <div class="form-group" style="max-width:90px;"><label>Time</label><input type="time" id="modal-inh-time"/></div>
-        <div class="form-group" style="max-width:80px;"><label>Puffs</label><input type="number" id="modal-inh-puffs" value="2" min="1" max="10"/></div>
-        <div class="form-group" style="flex:1;min-width:120px;"><label>Reason</label><input type="text" id="modal-inh-reason" placeholder="Optional"/></div>
-        <button class="btn-add" style="margin-bottom:1px;" onclick="modalAddInhaler()">+</button>
+    <div class="ms"><h4>🌸 Pink Inhaler</h4>
+      <div class="mrl" id="m-pink-list"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="max-width:88px"><label>Time</label><input type="time" id="m-pink-t"/></div>
+        <div class="fg" style="max-width:78px"><label>Puffs</label><input type="number" id="m-pink-p" value="2" min="1" max="10" inputmode="numeric"/></div>
+        <div class="fg" style="flex:1;min-width:100px"><label>Note</label><input type="text" id="m-pink-c" placeholder="Optional"/></div>
+        <button class="btn-add p" style="margin-bottom:1px" onclick="mAddPink()">+</button>
       </div>
     </div>
-
-    <button class="modal-save" onclick="saveModalNote()">Save Entry</button>
+    <button class="msave" onclick="saveModal()">Save Entry</button>
   </div>
 </div>
 
-<!-- ══ TOOLTIP ═══════════════════════════════════════════════════ -->
-<div class="tooltip" id="graph-tooltip"></div>
-
-<!-- ══ SUCCESS FLASH ═════════════════════════════════════════════ -->
-<div class="success-flash" id="success-flash"></div>
-
+<div class="tt" id="tt"></div>
+<div class="flash" id="flash"></div>
 <script>
-// ═══════════════════════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════════════════════
-const PERSONAL_BEST = 620;
-const GREEN_THRESHOLD = PERSONAL_BEST * 0.8;   // 496
-const AMBER_THRESHOLD = PERSONAL_BEST * 0.5;   // 310
+// ── Config ──────────────────────────────────────────────────────
+const PB             = 620;
+const GREEN_T        = PB * 0.8;
+const AMBER_T        = PB * 0.5;
+const API            = 'https://asthma.exposurephotographer0.workers.dev';
 
-let AUTH_TOKEN = '';
-let currentTab = 'dashboard';
-let calYear, calMonth;
-let calData = {};         // { "YYYY-MM-DD": { pf, inhaler, symptoms, note } }
-let graphRange = 0;       // 0 = all time, else days
-let graphData = { pf: [], inhaler: [] };
-let modalDate = '';
-let modalPFEntries = [];
-let modalInhEntries = [];
+// ── State ───────────────────────────────────────────────────────
+let TOKEN = '', curTab = 'dashboard';
+let calY, calM, calData = {};
+let gRange = 0, gData = {pf:[],blue:[],pink:[]};
+let mDate = '', mPF = [], mBlue = [], mPink = [];
+let aRange = 90;
 
-// ═══════════════════════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════════════════════
-const todayStr = () => new Date().toISOString().split('T')[0];
-const nowTime  = () => new Date().toTimeString().slice(0,5);
+// ── Utils ───────────────────────────────────────────────────────
+const today   = () => new Date().toISOString().split('T')[0];
+const nowTime = () => new Date().toTimeString().slice(0,5);
+const daysAgo = n => new Date(Date.now()-n*864e5).toISOString().split('T')[0];
+const avg     = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : 0;
 
-function pfZone(v) {
-  if (v >= GREEN_THRESHOLD) return 'green';
-  if (v >= AMBER_THRESHOLD) return 'amber';
-  return 'red';
+function pfZone(v){ return v>=GREEN_T?'green':v>=AMBER_T?'amber':'red'; }
+function pfCol(v){ const z=pfZone(v); return z==='green'?'#3fb950':z==='amber'?'#e3b341':'#f85149'; }
+function cv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+function flash(msg){
+  const el=document.getElementById('flash');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2600);
 }
-function pfZoneColor(v) {
-  const z = pfZone(v);
-  return z === 'green' ? getComputedStyle(document.documentElement).getPropertyValue('--pf-good').trim()
-       : z === 'amber' ? getComputedStyle(document.documentElement).getPropertyValue('--pf-fair').trim()
-       :                 getComputedStyle(document.documentElement).getPropertyValue('--pf-poor').trim();
-}
+function formatDate(s){ return new Date(s+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
 
-function flash(msg) {
-  const el = document.getElementById('success-flash');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// API BASE URL
-// ═══════════════════════════════════════════════════════════════
-const API_BASE = 'https://asthma.exposurephotographer0.workers.dev';
-
-// ═══════════════════════════════════════════════════════════════
-// AUTH
-// ═══════════════════════════════════════════════════════════════
-async function doLogin() {
-  const pwd = document.getElementById('pwd-input').value;
-  const err = document.getElementById('login-error');
-  err.textContent = '';
+// ── Auth ────────────────────────────────────────────────────────
+async function doLogin(){
+  const pwd=document.getElementById('pwd-input').value;
+  const err=document.getElementById('lerr');
+  err.textContent='';
   try {
-    const r = await fetch(API_BASE + '/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pwd}) });
-    const d = await r.json();
-    if (d.token) {
-      AUTH_TOKEN = d.token;
-      sessionStorage.setItem('at_token', AUTH_TOKEN);
-      showApp();
-    } else {
-      err.textContent = 'Incorrect password.';
-    }
-  } catch(e) {
-    err.textContent = 'Could not connect to server.';
-  }
+    const r=await fetch(API+'/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+    const d=await r.json();
+    if(d.token){ TOKEN=d.token; sessionStorage.setItem('at',TOKEN); showApp(); }
+    else err.textContent='Incorrect password.';
+  } catch(e){ err.textContent='Could not connect to server.'; }
 }
+document.getElementById('pwd-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
-document.getElementById('pwd-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-function logout() {
-  AUTH_TOKEN = '';
-  sessionStorage.removeItem('at_token');
+function logout(){
+  TOKEN=''; sessionStorage.removeItem('at');
   document.getElementById('app').classList.remove('visible');
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('pwd-input').value = '';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('pwd-input').value='';
 }
 
-async function api(method, path, body) {
-  const opts = { method, headers: { 'Authorization': 'Bearer ' + AUTH_TOKEN, 'Content-Type': 'application/json' } };
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(API_BASE + path, opts);
-  return r.json();
+async function call(method,path,body){
+  const o={method,headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}};
+  if(body) o.body=JSON.stringify(body);
+  return (await fetch(API+path,o)).json();
 }
 
-// ═══════════════════════════════════════════════════════════════
-// APP INIT
-
-// ═══════════════════════════════════════════════════════════════
-async function showApp() {
-  document.getElementById('login-screen').style.display = 'none';
+// ── App init ────────────────────────────────────────────────────
+async function showApp(){
+  document.getElementById('login-screen').style.display='none';
   document.getElementById('app').classList.add('visible');
-
-  const now = new Date();
-  document.getElementById('today-label').textContent = now.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
-
-  calYear  = now.getFullYear();
-  calMonth = now.getMonth();
-
-  // Set default times
-  const t = nowTime();
-  document.getElementById('pf-time').value  = t;
-  document.getElementById('inh-time').value = t;
-
-  initSymptomChecks('dash-symptom-checks');
-  await Promise.all([ loadDashboard(), loadTodayNote() ]);
+  const ds=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('today-label').textContent=ds;
+  document.getElementById('mhdate').textContent=ds;
+  const n=new Date(); calY=n.getFullYear(); calM=n.getMonth();
+  const t=nowTime();
+  ['pf-time','blue-time','pink-time'].forEach(id=>document.getElementById(id).value=t);
+  initSym('dsyms');
+  await Promise.all([loadDash(),loadNote()]);
 }
 
-function initSymptomChecks(containerId) {
-  document.querySelectorAll(`#${containerId} .symptom-check`).forEach(el => {
-    el.addEventListener('click', function() { this.classList.toggle('checked'); });
+// ── Tabs ────────────────────────────────────────────────────────
+function showTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn,.mb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll(`[onclick*="showTab('${name}"]`).forEach(b=>b.classList.add('active'));
+  curTab=name;
+  if(name==='calendar')  renderCal();
+  if(name==='graphs')    renderGraph();
+  if(name==='analytics') renderAnalytics();
+}
+
+// ── Symptoms ────────────────────────────────────────────────────
+function initSym(cid){
+  document.querySelectorAll(`#${cid} .sym-check`).forEach(el=>{
+    el.addEventListener('click',function(){this.classList.toggle('on');});
   });
 }
+function getSyms(cid){ return Array.from(document.querySelectorAll(`#${cid} .sym-check.on`)).map(e=>e.dataset.s); }
+function setSyms(cid,syms){ document.querySelectorAll(`#${cid} .sym-check`).forEach(e=>e.classList.toggle('on',syms.includes(e.dataset.s))); }
 
-function getCheckedSymptoms(containerId) {
-  return Array.from(document.querySelectorAll(`#${containerId} .symptom-check.checked`)).map(el => el.dataset.sym);
-}
-
-function setCheckedSymptoms(containerId, symptoms) {
-  document.querySelectorAll(`#${containerId} .symptom-check`).forEach(el => {
-    el.classList.toggle('checked', symptoms.includes(el.dataset.sym));
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// DASHBOARD
-// ═══════════════════════════════════════════════════════════════
-async function loadDashboard() {
-  const today = todayStr();
-  const weekAgo = new Date(Date.now() - 6*864e5).toISOString().split('T')[0];
-
-  const [pfToday, inhToday, summary] = await Promise.all([
-    api('GET', `/api/peakflow?from=${today}&to=${today}`),
-    api('GET', `/api/inhaler?from=${today}&to=${today}`),
-    api('GET', `/api/summary?from=${weekAgo}&to=${today}`),
+// ── Dashboard ───────────────────────────────────────────────────
+async function loadDash(){
+  const t=today(), w=daysAgo(6);
+  const [pf,blue,pink,sum]=await Promise.all([
+    call('GET',`/api/peakflow?from=${t}&to=${t}`),
+    call('GET',`/api/inhaler?from=${t}&to=${t}`),
+    call('GET',`/api/pink?from=${t}&to=${t}`),
+    call('GET',`/api/summary?from=${w}&to=${t}`),
   ]);
-
-  renderTodayPF(pfToday);
-  renderTodayInhaler(inhToday);
-  renderStats(pfToday, inhToday, summary);
+  renderTodayPF(pf); renderTodayBlue(blue); renderTodayPink(pink);
+  renderStats(pf,blue,pink,sum);
 }
 
-function renderStats(pf, inh, summary) {
-  const bestPF = pf.length ? Math.max(...pf.map(r=>r.reading)) : null;
-  const totalPuffs = inh.reduce((s,r)=>s+r.puffs, 0);
-
-  const statPF = document.getElementById('stat-pf');
-  const statZone = document.getElementById('stat-zone');
-  const statInh = document.getElementById('stat-inhaler');
-  const statWeek = document.getElementById('stat-week');
-
-  if (bestPF !== null) {
-    const zone = pfZone(bestPF);
-    statPF.querySelector('.value').textContent = bestPF;
-    statPF.className = `stat-card ${zone === 'green' ? 'good' : zone === 'amber' ? 'warn' : 'danger'}`;
-    const pct = Math.round(bestPF/PERSONAL_BEST*100);
-    statPF.querySelector('.sub').textContent = `${pct}% of personal best (${PERSONAL_BEST})`;
-
-    statZone.querySelector('.value').textContent = zone === 'green' ? 'Green 🟢' : zone === 'amber' ? 'Amber 🟡' : 'Red 🔴';
-    statZone.className = `stat-card ${zone === 'green' ? 'good' : zone === 'amber' ? 'warn' : 'danger'}`;
+function renderStats(pf,blue,pink,sum){
+  const best=pf.length?Math.max(...pf.map(r=>r.reading)):null;
+  const bp=blue.reduce((s,r)=>s+r.puffs,0);
+  const pfEl=document.getElementById('sc-pf'), zEl=document.getElementById('sc-zone');
+  const blEl=document.getElementById('sc-blue'), pkEl=document.getElementById('sc-pink');
+  if(best!==null){
+    const z=pfZone(best), pct=Math.round(best/PB*100);
+    pfEl.querySelector('.sv').textContent=best;
+    pfEl.className=`sc ${z==='green'?'good':z==='amber'?'warn':'bad'}`;
+    pfEl.querySelector('.ss').textContent=`${pct}% of PB (${PB})`;
+    zEl.querySelector('.sv').textContent=z==='green'?'Green 🟢':z==='amber'?'Amber 🟡':'Red 🔴';
+    zEl.className=`sc ${z==='green'?'good':z==='amber'?'warn':'bad'}`;
+  } else { pfEl.querySelector('.sv').textContent='—'; zEl.querySelector('.sv').textContent='—'; }
+  blEl.querySelector('.sv').textContent=bp||'0';
+  blEl.className=`sc ${bp===0?'good':bp<=4?'':'warn'}`;
+  if(pink.length){
+    const first=pink.slice().sort((a,b)=>a.time.localeCompare(b.time))[0];
+    pkEl.querySelector('.sv').textContent='✓';
+    pkEl.querySelector('.ss').textContent=`First at ${first.time}`;
+    pkEl.className='sc good';
   } else {
-    statPF.querySelector('.value').textContent = '—';
-    statZone.querySelector('.value').textContent = '—';
-  }
-
-  statInh.querySelector('.value').textContent = totalPuffs || '0';
-  statInh.className = `stat-card ${totalPuffs === 0 ? 'good' : totalPuffs <= 4 ? '' : 'warn'}`;
-
-  // 7-day average
-  const allPF = summary.peakFlow || [];
-  if (allPF.length) {
-    const avg = Math.round(allPF.reduce((s,r)=>s+r.avg_reading,0)/allPF.length);
-    statWeek.querySelector('.value').textContent = avg;
-    statWeek.className = `stat-card ${pfZone(avg) === 'green' ? 'good' : pfZone(avg) === 'amber' ? 'warn' : 'danger'}`;
+    pkEl.querySelector('.sv').textContent='—';
+    pkEl.querySelector('.ss').textContent='Not logged today';
+    pkEl.className='sc warn';
   }
 }
 
-function renderTodayPF(entries) {
-  const el = document.getElementById('pf-today-list');
-  if (!entries.length) { el.innerHTML = '<div class="empty-state" style="padding:16px 0;">No readings yet today</div>'; return; }
-  el.innerHTML = entries.map(r => `
-    <div class="entry-item">
-      <div class="pf-zone ${pfZone(r.reading)}"></div>
-      <div class="entry-time">${r.time}</div>
-      <div class="entry-val" style="color:${pfZoneColor(r.reading)}">${r.reading}</div>
-      <div class="entry-comment">${r.comment || ''}</div>
-      <div class="entry-actions"><button class="btn-sm" onclick="deletePF(${r.id})">✕</button></div>
-    </div>`).join('');
+function renderTodayPF(e){
+  const el=document.getElementById('pf-list');
+  if(!e.length){el.innerHTML='<div class="empty">No readings yet today</div>';return;}
+  el.innerHTML=e.map(r=>`<div class="ei"><div class="pfdot ${pfZone(r.reading)}"></div><div class="etime">${r.time}</div><div class="eval" style="color:${pfCol(r.reading)}">${r.reading}</div><div class="ecmt">${r.comment||''}</div><div><button class="btn-sm" onclick="delPF(${r.id})">✕</button></div></div>`).join('');
+}
+function renderTodayBlue(e){
+  const el=document.getElementById('blue-list');
+  if(!e.length){el.innerHTML='<div class="empty">None today</div>';return;}
+  el.innerHTML=e.map(r=>`<div class="ei"><div class="etime">${r.time}</div><div class="eval" style="color:var(--blue)">${r.puffs}💙</div><div class="ecmt">${r.reason||''}</div><div><button class="btn-sm" onclick="delBlue(${r.id})">✕</button></div></div>`).join('');
+}
+function renderTodayPink(e){
+  const el=document.getElementById('pink-list');
+  if(!e.length){el.innerHTML='<div class="empty">Not logged today</div>';return;}
+  el.innerHTML=e.map(r=>`<div class="ei"><div class="etime">${r.time}</div><div class="eval" style="color:var(--pink)">${r.puffs}🌸</div><div class="ecmt">${r.comment||''}</div><div><button class="btn-sm" onclick="delPink(${r.id})">✕</button></div></div>`).join('');
 }
 
-function renderTodayInhaler(entries) {
-  const el = document.getElementById('inh-today-list');
-  if (!entries.length) { el.innerHTML = '<div class="empty-state" style="padding:16px 0;">No use recorded today</div>'; return; }
-  el.innerHTML = entries.map(r => `
-    <div class="entry-item">
-      <div class="entry-time">${r.time}</div>
-      <div class="entry-val" style="color:var(--inhaler)">${r.puffs}💙</div>
-      <div class="entry-comment">${r.reason || ''}</div>
-      <div class="entry-actions"><button class="btn-sm" onclick="deleteInhaler(${r.id})">✕</button></div>
-    </div>`).join('');
+async function loadNote(){
+  const d=await call('GET',`/api/notes/${today()}`);
+  if(d.note) document.getElementById('daily-note').value=d.note;
+  if(d.symptoms) setSyms('dsyms',JSON.parse(d.symptoms));
 }
 
-async function loadTodayNote() {
-  const today = todayStr();
-  const d = await api('GET', `/api/notes/${today}`);
-  if (d.note) document.getElementById('daily-note').value = d.note;
-  if (d.symptoms) {
-    const syms = JSON.parse(d.symptoms);
-    setCheckedSymptoms('dash-symptom-checks', syms);
-  }
+// ── Log actions ─────────────────────────────────────────────────
+async function logPF(){
+  const reading=parseInt(document.getElementById('pf-reading').value);
+  if(!reading||reading<50||reading>900){alert('Enter a valid reading (50–900)');return;}
+  await call('POST','/api/peakflow',{date:today(),time:document.getElementById('pf-time').value||nowTime(),reading,comment:document.getElementById('pf-comment').value});
+  document.getElementById('pf-reading').value=''; document.getElementById('pf-comment').value='';
+  flash('Peak flow logged ✓'); await loadDash();
 }
-
-// ═══════════════════════════════════════════════════════════════
-// LOG ACTIONS
-// ═══════════════════════════════════════════════════════════════
-async function logPeakFlow() {
-  const reading = parseInt(document.getElementById('pf-reading').value);
-  if (!reading || reading < 50 || reading > 900) { alert('Enter a valid peak flow reading (50–900)'); return; }
-  const time    = document.getElementById('pf-time').value || nowTime();
-  const comment = document.getElementById('pf-comment').value;
-  await api('POST', '/api/peakflow', { date: todayStr(), time, reading, comment });
-  document.getElementById('pf-reading').value = '';
-  document.getElementById('pf-comment').value = '';
-  flash('Peak flow logged ✓');
-  await loadDashboard();
+async function logBlue(){
+  const puffs=parseInt(document.getElementById('blue-puffs').value)||2;
+  await call('POST','/api/inhaler',{date:today(),time:document.getElementById('blue-time').value||nowTime(),puffs,reason:document.getElementById('blue-reason').value});
+  document.getElementById('blue-reason').value='';
+  flash('Blue inhaler logged ✓'); await loadDash();
 }
-
-async function logInhaler() {
-  const puffs  = parseInt(document.getElementById('inh-puffs').value) || 2;
-  const time   = document.getElementById('inh-time').value || nowTime();
-  const reason = document.getElementById('inh-reason').value;
-  await api('POST', '/api/inhaler', { date: todayStr(), time, puffs, reason });
-  document.getElementById('inh-reason').value = '';
-  flash('Inhaler use logged ✓');
-  await loadDashboard();
+async function logPink(){
+  const puffs=parseInt(document.getElementById('pink-puffs').value)||2;
+  await call('POST','/api/pink',{date:today(),time:document.getElementById('pink-time').value||nowTime(),puffs,comment:document.getElementById('pink-comment').value});
+  document.getElementById('pink-comment').value='';
+  flash('Pink inhaler logged ✓'); await loadDash();
 }
-
-async function saveDailyNote() {
-  const note     = document.getElementById('daily-note').value;
-  const symptoms = getCheckedSymptoms('dash-symptom-checks');
-  await api('POST', '/api/notes', { date: todayStr(), note, symptoms });
+async function saveNote(){
+  await call('POST','/api/notes',{date:today(),note:document.getElementById('daily-note').value,symptoms:getSyms('dsyms')});
   flash('Entry saved ✓');
 }
+async function delPF(id)  { await call('DELETE',`/api/peakflow?id=${id}`); flash('Removed'); await loadDash(); }
+async function delBlue(id){ await call('DELETE',`/api/inhaler?id=${id}`);  flash('Removed'); await loadDash(); }
+async function delPink(id){ await call('DELETE',`/api/pink?id=${id}`);     flash('Removed'); await loadDash(); }
 
-async function deletePF(id) {
-  await api('DELETE', `/api/peakflow?id=${id}`);
-  flash('Reading removed');
-  await loadDashboard();
-}
+// ── Calendar ────────────────────────────────────────────────────
+function changeMonth(d){ calM+=d; if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;} renderCal(); }
 
-async function deleteInhaler(id) {
-  await api('DELETE', `/api/inhaler?id=${id}`);
-  flash('Entry removed');
-  await loadDashboard();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CALENDAR
-// ═══════════════════════════════════════════════════════════════
-function showTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (btn) btn.classList.add('active');
-  currentTab = name;
-  if (name === 'calendar') renderCalendar();
-  if (name === 'graphs')   renderGraph();
-}
-
-function changeMonth(delta) {
-  calMonth += delta;
-  if (calMonth < 0)  { calMonth = 11; calYear--; }
-  if (calMonth > 11) { calMonth = 0;  calYear++; }
-  renderCalendar();
-}
-
-async function renderCalendar() {
-  const year = calYear, month = calMonth;
-  const label = new Date(year, month, 1).toLocaleDateString('en-GB', { month:'long', year:'numeric' });
-  document.getElementById('cal-month-label').textContent = label;
-
-  // Date range for the month
-  const from = `${year}-${String(month+1).padStart(2,'0')}-01`;
-  const lastDay = new Date(year, month+1, 0).getDate();
-  const to = `${year}-${String(month+1).padStart(2,'0')}-${lastDay}`;
-
-  const [notes, pfSummary, inhSummary] = await Promise.all([
-    api('GET', `/api/notes?from=${from}&to=${to}`),
-    api('GET', `/api/summary?from=${from}&to=${to}`),
-    api('GET', `/api/summary?from=${from}&to=${to}`),
+async function renderCal(){
+  document.getElementById('cal-lbl').textContent=new Date(calY,calM,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const from=`${calY}-${String(calM+1).padStart(2,'0')}-01`;
+  const last=new Date(calY,calM+1,0).getDate();
+  const to=`${calY}-${String(calM+1).padStart(2,'0')}-${last}`;
+  const [notes,sum,pinkRaw]=await Promise.all([
+    call('GET',`/api/notes?from=${from}&to=${to}`),
+    call('GET',`/api/summary?from=${from}&to=${to}`),
+    call('GET',`/api/pink?from=${from}&to=${to}`),
   ]);
+  calData={};
+  (notes||[]).forEach(n=>{if(!calData[n.date])calData[n.date]={};calData[n.date].note=n.note;calData[n.date].syms=n.symptoms?JSON.parse(n.symptoms):[];});
+  (sum.peakFlow||[]).forEach(r=>{if(!calData[r.date])calData[r.date]={};calData[r.date].pf=r;});
+  (sum.inhalerUse||[]).forEach(r=>{if(!calData[r.date])calData[r.date]={};calData[r.date].blue=r;});
+  const pByDate={};
+  (pinkRaw||[]).forEach(r=>{pByDate[r.date]=(pByDate[r.date]||0)+r.puffs;});
+  Object.keys(pByDate).forEach(d=>{if(!calData[d])calData[d]={};calData[d].pink=pByDate[d];});
 
-  // Index by date
-  calData = {};
-  (notes || []).forEach(n => {
-    if (!calData[n.date]) calData[n.date] = {};
-    calData[n.date].note     = n.note;
-    calData[n.date].symptoms = n.symptoms ? JSON.parse(n.symptoms) : [];
-  });
-  (pfSummary.peakFlow || []).forEach(r => {
-    if (!calData[r.date]) calData[r.date] = {};
-    calData[r.date].pf = r;
-  });
-  (pfSummary.inhalerUse || []).forEach(r => {
-    if (!calData[r.date]) calData[r.date] = {};
-    calData[r.date].inhaler = r;
-  });
-
-  // Build grid
-  const grid = document.getElementById('calendar-grid');
-  // Remove old day cells but keep headers
-  const headers = Array.from(grid.children).slice(0, 7);
-  grid.innerHTML = '';
-  headers.forEach(h => grid.appendChild(h));
-
-  const firstDay = new Date(year, month, 1);
-  // Monday-first: getDay() is 0=Sun, 1=Mon…
-  let startDow = firstDay.getDay();
-  startDow = startDow === 0 ? 6 : startDow - 1; // make Mon=0
-
-  // Pad with prev month days
-  for (let i = 0; i < startDow; i++) {
-    const d = document.createElement('div');
-    d.className = 'cal-day other-month';
-    grid.appendChild(d);
-  }
-
-  const todayFull = todayStr();
-  for (let day = 1; day <= lastDay; day++) {
-    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const data    = calData[dateStr] || {};
-    const d       = document.createElement('div');
-    d.className   = 'cal-day' + (dateStr === todayFull ? ' today' : '') + (Object.keys(data).length ? ' has-data' : '');
-    d.onclick     = () => openModal(dateStr);
-
-    let html = `<div class="day-num">${day}</div>`;
-
-    if (data.pf) {
-      const z = pfZone(data.pf.max_reading);
-      const col = z === 'green' ? 'var(--pf-good)' : z === 'amber' ? 'var(--pf-fair)' : 'var(--pf-poor)';
-      html += `<div class="cal-pip"><div class="dot" style="background:${col}"></div>${Math.round(data.pf.avg_reading)}</div>`;
-    }
-    if (data.inhaler && data.inhaler.total_puffs) {
-      html += `<div class="cal-pip"><div class="dot" style="background:var(--inhaler)"></div>${data.inhaler.total_puffs}💙</div>`;
-    }
-    if (data.symptoms && data.symptoms.length) {
-      html += `<div class="cal-pip symptom">${data.symptoms.slice(0,2).join(', ')}</div>`;
-    }
-
-    d.innerHTML = html;
-    grid.appendChild(d);
+  const grid=document.getElementById('cal-grid');
+  const hdrs=Array.from(grid.children).slice(0,7);
+  grid.innerHTML=''; hdrs.forEach(h=>grid.appendChild(h));
+  let dow=new Date(calY,calM,1).getDay(); dow=dow===0?6:dow-1;
+  for(let i=0;i<dow;i++){const d=document.createElement('div');d.className='cday other';grid.appendChild(d);}
+  const td=today();
+  for(let day=1;day<=last;day++){
+    const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const data=calData[ds]||{};
+    const d=document.createElement('div');
+    d.className='cday'+(ds===td?' today':'')+(Object.keys(data).length?' hd':'');
+    d.onclick=()=>openModal(ds);
+    let h=`<div class="dn">${day}</div>`;
+    if(data.pf){const z=pfZone(data.pf.max_reading);const c=z==='green'?'var(--pf-good)':z==='amber'?'var(--pf-fair)':'var(--pf-poor)';h+=`<div class="cpip"><div class="dot" style="background:${c}"></div>${Math.round(data.pf.avg_reading)}</div>`;}
+    if(data.blue&&data.blue.total_puffs) h+=`<div class="cpip"><div class="dot" style="background:var(--blue)"></div>${data.blue.total_puffs}💙</div>`;
+    if(data.pink) h+=`<div class="cpip"><div class="dot" style="background:var(--pink)"></div>🌸</div>`;
+    if(data.syms&&data.syms.length) h+=`<div class="cpip sym">${data.syms.slice(0,2).join(', ')}</div>`;
+    d.innerHTML=h; grid.appendChild(d);
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MODAL
-// ═══════════════════════════════════════════════════════════════
-async function openModal(dateStr) {
-  modalDate = dateStr;
-  modalPFEntries  = [];
-  modalInhEntries = [];
-
-  document.getElementById('modal-title').textContent = new Date(dateStr+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('modal-date-label').textContent = dateStr;
-
-  // reset
-  document.getElementById('modal-note').value = '';
-  setCheckedSymptoms('modal-symptom-checks', []);
-
-  const t = nowTime();
-  document.getElementById('modal-pf-time').value  = t;
-  document.getElementById('modal-inh-time').value = t;
-  document.getElementById('modal-pf-val').value   = '';
-  document.getElementById('modal-pf-comment').value = '';
-  document.getElementById('modal-inh-puffs').value = '2';
-  document.getElementById('modal-inh-reason').value = '';
-
+// ── Modal ───────────────────────────────────────────────────────
+async function openModal(ds){
+  mDate=ds; mPF=[]; mBlue=[]; mPink=[];
+  document.getElementById('m-title').textContent=new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('m-date').textContent=ds;
+  document.getElementById('m-note').value='';
+  setSyms('msyms',[]);
+  const t=nowTime();
+  ['m-pf-t','m-blue-t','m-pink-t'].forEach(id=>document.getElementById(id).value=t);
+  ['m-pf-v','m-pf-c','m-blue-r','m-pink-c'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-blue-p').value='2'; document.getElementById('m-pink-p').value='2';
   document.getElementById('day-modal').classList.add('open');
-
-  const [note, pf, inh] = await Promise.all([
-    api('GET', `/api/notes/${dateStr}`),
-    api('GET', `/api/peakflow?from=${dateStr}&to=${dateStr}`),
-    api('GET', `/api/inhaler?from=${dateStr}&to=${dateStr}`),
+  const [note,pf,blue,pink]=await Promise.all([
+    call('GET',`/api/notes/${ds}`),
+    call('GET',`/api/peakflow?from=${ds}&to=${ds}`),
+    call('GET',`/api/inhaler?from=${ds}&to=${ds}`),
+    call('GET',`/api/pink?from=${ds}&to=${ds}`),
   ]);
+  if(note.note) document.getElementById('m-note').value=note.note;
+  if(note.symptoms) setSyms('msyms',JSON.parse(note.symptoms));
+  mPF=pf||[]; mBlue=blue||[]; mPink=pink||[];
+  renderMPF(); renderMBlue(); renderMPink();
+}
+function closeModal(){ document.getElementById('day-modal').classList.remove('open'); }
+document.getElementById('day-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-  if (note.note) document.getElementById('modal-note').value = note.note;
-  if (note.symptoms) setCheckedSymptoms('modal-symptom-checks', JSON.parse(note.symptoms));
-
-  modalPFEntries  = pf  || [];
-  modalInhEntries = inh || [];
-
-  renderModalPF();
-  renderModalInhaler();
+function renderMPF(){
+  const el=document.getElementById('m-pf-list');
+  if(!mPF.length){el.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:3px 0">No readings</div>';return;}
+  el.innerHTML=mPF.map(r=>`<div class="mri"><div class="pfdot ${pfZone(r.reading)}"></div><div class="mt">${r.time}</div><div class="mv" style="color:${pfCol(r.reading)}">${r.reading}</div><div class="mc">${r.comment||''}</div><button class="btn-sm" onclick="mDelPF(${r.id})">✕</button></div>`).join('');
+}
+function renderMBlue(){
+  const el=document.getElementById('m-blue-list');
+  if(!mBlue.length){el.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:3px 0">None recorded</div>';return;}
+  el.innerHTML=mBlue.map(r=>`<div class="mri"><div class="mt">${r.time}</div><div class="mv" style="color:var(--blue)">${r.puffs}💙</div><div class="mc">${r.reason||''}</div><button class="btn-sm" onclick="mDelBlue(${r.id})">✕</button></div>`).join('');
+}
+function renderMPink(){
+  const el=document.getElementById('m-pink-list');
+  if(!mPink.length){el.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:3px 0">None recorded</div>';return;}
+  el.innerHTML=mPink.map(r=>`<div class="mri"><div class="mt">${r.time}</div><div class="mv" style="color:var(--pink)">${r.puffs}🌸</div><div class="mc">${r.comment||''}</div><button class="btn-sm" onclick="mDelPink(${r.id})">✕</button></div>`).join('');
 }
 
-function closeModal() {
-  document.getElementById('day-modal').classList.remove('open');
+async function mAddPF(){
+  const v=parseInt(document.getElementById('m-pf-v').value);if(!v)return;
+  await call('POST','/api/peakflow',{date:mDate,time:document.getElementById('m-pf-t').value||nowTime(),reading:v,comment:document.getElementById('m-pf-c').value});
+  document.getElementById('m-pf-v').value=''; document.getElementById('m-pf-c').value='';
+  mPF=await call('GET',`/api/peakflow?from=${mDate}&to=${mDate}`); renderMPF();
 }
-document.getElementById('day-modal').addEventListener('click', function(e){ if(e.target === this) closeModal(); });
-
-function renderModalPF() {
-  const el = document.getElementById('modal-pf-list');
-  if (!modalPFEntries.length) { el.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:4px 0;">No readings</div>'; return; }
-  el.innerHTML = modalPFEntries.map(r => `
-    <div class="modal-reading-item">
-      <div class="pf-zone ${pfZone(r.reading)}"></div>
-      <div class="time">${r.time}</div>
-      <div class="val" style="color:${pfZoneColor(r.reading)}">${r.reading}</div>
-      <div class="comment">${r.comment||''}</div>
-      <button class="btn-sm" onclick="modalDeletePF(${r.id})">✕</button>
-    </div>`).join('');
+async function mAddBlue(){
+  const p=parseInt(document.getElementById('m-blue-p').value)||2;
+  await call('POST','/api/inhaler',{date:mDate,time:document.getElementById('m-blue-t').value||nowTime(),puffs:p,reason:document.getElementById('m-blue-r').value});
+  document.getElementById('m-blue-r').value='';
+  mBlue=await call('GET',`/api/inhaler?from=${mDate}&to=${mDate}`); renderMBlue();
 }
-
-function renderModalInhaler() {
-  const el = document.getElementById('modal-inh-list');
-  if (!modalInhEntries.length) { el.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:4px 0;">No use recorded</div>'; return; }
-  el.innerHTML = modalInhEntries.map(r => `
-    <div class="modal-reading-item">
-      <div class="time">${r.time}</div>
-      <div class="val" style="color:var(--inhaler)">${r.puffs}💙</div>
-      <div class="comment">${r.reason||''}</div>
-      <button class="btn-sm" onclick="modalDeleteInh(${r.id})">✕</button>
-    </div>`).join('');
+async function mAddPink(){
+  const p=parseInt(document.getElementById('m-pink-p').value)||2;
+  await call('POST','/api/pink',{date:mDate,time:document.getElementById('m-pink-t').value||nowTime(),puffs:p,comment:document.getElementById('m-pink-c').value});
+  document.getElementById('m-pink-c').value='';
+  mPink=await call('GET',`/api/pink?from=${mDate}&to=${mDate}`); renderMPink();
 }
+async function mDelPF(id)  {await call('DELETE',`/api/peakflow?id=${id}`);mPF=mPF.filter(r=>r.id!==id);renderMPF();}
+async function mDelBlue(id){await call('DELETE',`/api/inhaler?id=${id}`); mBlue=mBlue.filter(r=>r.id!==id);renderMBlue();}
+async function mDelPink(id){await call('DELETE',`/api/pink?id=${id}`);    mPink=mPink.filter(r=>r.id!==id);renderMPink();}
 
-async function modalAddPF() {
-  const reading = parseInt(document.getElementById('modal-pf-val').value);
-  if (!reading) return;
-  const time    = document.getElementById('modal-pf-time').value || nowTime();
-  const comment = document.getElementById('modal-pf-comment').value;
-  const r = await api('POST', '/api/peakflow', { date: modalDate, time, reading, comment });
-  document.getElementById('modal-pf-val').value = '';
-  document.getElementById('modal-pf-comment').value = '';
-  const fresh = await api('GET', `/api/peakflow?from=${modalDate}&to=${modalDate}`);
-  modalPFEntries = fresh;
-  renderModalPF();
+async function saveModal(){
+  await call('POST','/api/notes',{date:mDate,note:document.getElementById('m-note').value,symptoms:getSyms('msyms')});
+  flash('Entry saved ✓'); closeModal();
+  if(curTab==='calendar') renderCal();
 }
+initSym('msyms');
 
-async function modalAddInhaler() {
-  const puffs  = parseInt(document.getElementById('modal-inh-puffs').value)||2;
-  const time   = document.getElementById('modal-inh-time').value || nowTime();
-  const reason = document.getElementById('modal-inh-reason').value;
-  await api('POST', '/api/inhaler', { date: modalDate, time, puffs, reason });
-  document.getElementById('modal-inh-reason').value = '';
-  const fresh = await api('GET', `/api/inhaler?from=${modalDate}&to=${modalDate}`);
-  modalInhEntries = fresh;
-  renderModalInhaler();
-}
-
-async function modalDeletePF(id) {
-  await api('DELETE', `/api/peakflow?id=${id}`);
-  modalPFEntries = modalPFEntries.filter(r => r.id !== id);
-  renderModalPF();
-}
-
-async function modalDeleteInh(id) {
-  await api('DELETE', `/api/inhaler?id=${id}`);
-  modalInhEntries = modalInhEntries.filter(r => r.id !== id);
-  renderModalInhaler();
-}
-
-async function saveModalNote() {
-  const note     = document.getElementById('modal-note').value;
-  const symptoms = getCheckedSymptoms('modal-symptom-checks');
-  await api('POST', '/api/notes', { date: modalDate, note, symptoms });
-  flash('Entry saved ✓');
-  closeModal();
-  if (currentTab === 'calendar') renderCalendar();
-}
-
-// init modal symptom checks
-initSymptomChecks('modal-symptom-checks');
-
-// ═══════════════════════════════════════════════════════════════
-// GRAPH
-// ═══════════════════════════════════════════════════════════════
-function setRange(days, btn) {
-  graphRange = days;
-  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+// ── Graphs ──────────────────────────────────────────────────────
+function setGRange(days,btn){
+  gRange=days;
+  document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderGraph();
 }
 
-async function renderGraph() {
-  const today = todayStr();
-  let from;
-  if (graphRange === 0) {
-    from = '2000-01-01';
-  } else {
-    from = new Date(Date.now() - (graphRange-1)*864e5).toISOString().split('T')[0];
-  }
-
-  const data = await api('GET', `/api/summary?from=${from}&to=${today}`);
-  graphData.pf      = data.peakFlow    || [];
-  graphData.inhaler = data.inhalerUse  || [];
+async function renderGraph(){
+  const t=today(), from=gRange===0?'2000-01-01':daysAgo(gRange-1);
+  const data=await call('GET',`/api/summary?from=${from}&to=${t}`);
+  gData.pf=data.peakFlow||[]; gData.blue=data.inhalerUse||[]; gData.pink=data.pinkInhaler||[];
   drawGraph();
 }
 
-function drawGraph() {
-  const canvas  = document.getElementById('graph-canvas');
-  const tooltip = document.getElementById('graph-tooltip');
-  const dpr     = window.devicePixelRatio || 1;
-  const W       = canvas.parentElement.clientWidth - 48;
-  const H       = 340;
+function drawGraph(){
+  const canvas=document.getElementById('graph-canvas');
+  const tt=document.getElementById('tt');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-36, H=300;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const P={t:18,r:60,b:38,l:50};
+  const CW=W-P.l-P.r, CH=H-P.t-P.b;
+  ctx.clearRect(0,0,W,H);
 
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  canvas.width        = W * dpr;
-  canvas.height       = H * dpr;
-
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-
-  const PAD  = { top: 24, right: 60, bottom: 44, left: 58 };
-  const CW   = W - PAD.left - PAD.right;
-  const CH   = H - PAD.top  - PAD.bottom;
-
-  ctx.clearRect(0, 0, W, H);
-
-  // Merge dates
-  const allDates = Array.from(new Set([
-    ...graphData.pf.map(r=>r.date),
-    ...graphData.inhaler.map(r=>r.date)
-  ])).sort();
-
-  if (!allDates.length) {
-    ctx.fillStyle = '#7d8590';
-    ctx.font = '14px DM Sans, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('No data yet for this period', W/2, H/2);
-    return;
+  const allD=[...new Set([...gData.pf.map(r=>r.date),...gData.blue.map(r=>r.date),...gData.pink.map(r=>r.date)])].sort();
+  if(!allD.length){
+    ctx.fillStyle='#7d8590';ctx.font='13px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText('No data yet for this period',W/2,H/2);return;
   }
+  const pfV=gData.pf.map(r=>r.max_reading);
+  const pfMax=Math.max(...pfV,PB+50), pfMin=Math.max(0,Math.min(...pfV,AMBER_T)-50);
+  const inhMax=Math.max(...gData.blue.map(r=>r.total_puffs),...gData.pink.map(r=>r.total_puffs),4);
+  const xS=i=>P.l+(i/(allD.length-1||1))*CW;
+  const pfY=v=>P.t+CH-((v-pfMin)/(pfMax-pfMin))*CH;
+  const inhY=v=>P.t+CH-(v/inhMax)*CH;
 
-  // Scales
-  const pfValues = graphData.pf.map(r=>r.max_reading);
-  const pfMax = Math.max(...pfValues, PERSONAL_BEST + 50);
-  const pfMin = Math.max(0, Math.min(...pfValues, AMBER_THRESHOLD) - 50);
-  const inhMax = Math.max(...graphData.inhaler.map(r=>r.total_puffs), 4);
-
-  const xScale = i => PAD.left + (i / (allDates.length - 1 || 1)) * CW;
-  const pfY    = v => PAD.top  + CH - ((v - pfMin) / (pfMax - pfMin)) * CH;
-  const inhY   = v => PAD.top  + CH - (v / inhMax) * CH;
-
-  // ── Zone bands ───────────────────────────────────────────────
-  const bands = [
-    { from: GREEN_THRESHOLD, to: pfMax,           color: 'rgba(63,185,80,0.08)' },
-    { from: AMBER_THRESHOLD, to: GREEN_THRESHOLD, color: 'rgba(227,179,65,0.08)' },
-    { from: pfMin,           to: AMBER_THRESHOLD, color: 'rgba(248,81,73,0.08)' },
-  ];
-  bands.forEach(b => {
-    ctx.fillStyle = b.color;
-    const y1 = pfY(Math.min(b.to, pfMax));
-    const y2 = pfY(Math.max(b.from, pfMin));
-    ctx.fillRect(PAD.left, y1, CW, y2 - y1);
+  // Zone bands
+  [{f:GREEN_T,t:pfMax,c:'rgba(63,185,80,.07)'},{f:AMBER_T,t:GREEN_T,c:'rgba(227,179,65,.07)'},{f:pfMin,t:AMBER_T,c:'rgba(248,81,73,.07)'}].forEach(b=>{
+    ctx.fillStyle=b.c; ctx.fillRect(P.l,pfY(Math.min(b.t,pfMax)),CW,pfY(Math.max(b.f,pfMin))-pfY(Math.min(b.t,pfMax)));
   });
-
-  // ── Grid lines ───────────────────────────────────────────────
-  ctx.strokeStyle = '#30363d';
-  ctx.lineWidth   = 1;
-  const pfTicks = 5;
-  for (let i = 0; i <= pfTicks; i++) {
-    const v = pfMin + (pfMax - pfMin) * (i / pfTicks);
-    const y = pfY(v);
-    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + CW, y); ctx.stroke();
-    ctx.fillStyle   = '#7d8590';
-    ctx.font        = '11px DM Sans, sans-serif';
-    ctx.textAlign   = 'right';
-    ctx.fillText(Math.round(v), PAD.left - 6, y + 4);
+  // Grid lines
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    const v=pfMin+(pfMax-pfMin)*(i/5),y=pfY(v);
+    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(P.l+CW,y);ctx.stroke();
+    ctx.fillStyle='#7d8590';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='right';
+    ctx.fillText(Math.round(v),P.l-5,y+4);
   }
-
-  // ── X axis labels ────────────────────────────────────────────
-  const maxLabels = Math.min(allDates.length, Math.floor(CW / 56));
-  const step = Math.ceil(allDates.length / maxLabels);
-  ctx.fillStyle = '#7d8590';
-  ctx.font = '10px DM Sans, sans-serif';
-  ctx.textAlign = 'center';
-  allDates.forEach((d, i) => {
-    if (i % step !== 0 && i !== allDates.length - 1) return;
-    const x = xScale(i);
-    const label = d.slice(5); // MM-DD
-    ctx.fillText(label, x, H - PAD.bottom + 16);
+  // X labels
+  const step=Math.ceil(allD.length/Math.min(allD.length,Math.floor(CW/50)));
+  ctx.fillStyle='#7d8590';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='center';
+  allD.forEach((d,i)=>{if(i%step!==0&&i!==allD.length-1)return;ctx.fillText(d.slice(5),xS(i),H-P.b+13);});
+  // Pink bars (left of centre)
+  gData.pink.forEach(r=>{
+    const i=allD.indexOf(r.date);if(i<0)return;
+    const bw=Math.max(3,Math.min(13,CW/allD.length*.38));
+    const x=xS(i)-bw-2,y=inhY(r.total_puffs);
+    ctx.fillStyle='rgba(232,121,249,.2)';ctx.strokeStyle='rgba(232,121,249,.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y,bw,P.t+CH-y,3);ctx.fill();ctx.stroke();
   });
-
-  // ── Inhaler bars ──────────────────────────────────────────────
-  graphData.inhaler.forEach(r => {
-    const i = allDates.indexOf(r.date);
-    if (i < 0) return;
-    const x   = xScale(i);
-    const y   = inhY(r.total_puffs);
-    const bw  = Math.max(4, Math.min(18, CW / allDates.length * 0.5));
-    ctx.fillStyle   = 'rgba(88,166,255,0.25)';
-    ctx.strokeStyle = 'rgba(88,166,255,0.6)';
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.roundRect(x - bw/2, y, bw, PAD.top + CH - y, 3);
-    ctx.fill();
-    ctx.stroke();
+  // Blue bars (right of centre)
+  gData.blue.forEach(r=>{
+    const i=allD.indexOf(r.date);if(i<0)return;
+    const bw=Math.max(3,Math.min(13,CW/allD.length*.38));
+    const x=xS(i)+2,y=inhY(r.total_puffs);
+    ctx.fillStyle='rgba(88,166,255,.2)';ctx.strokeStyle='rgba(88,166,255,.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y,bw,P.t+CH-y,3);ctx.fill();ctx.stroke();
   });
-
-  // ── Right axis (inhaler) ──────────────────────────────────────
-  ctx.fillStyle = '#58a6ff99';
-  ctx.font = '10px DM Sans, sans-serif';
-  ctx.textAlign = 'left';
-  for (let i = 0; i <= Math.min(inhMax, 4); i++) {
-    const v = Math.round(inhMax * i / Math.min(inhMax, 4));
-    const y = inhY(v);
-    ctx.fillText(v + '💙', PAD.left + CW + 6, y + 4);
+  // Right axis
+  ctx.fillStyle='#7d859066';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='left';
+  for(let i=0;i<=Math.min(inhMax,4);i++){const v=Math.round(inhMax*i/Math.min(inhMax,4));ctx.fillText(v,P.l+CW+5,inhY(v)+4);}
+  // PF line
+  const pfI=gData.pf.map(r=>({i:allD.indexOf(r.date),...r})).filter(r=>r.i>=0);
+  if(pfI.length>1){
+    ctx.beginPath();pfI.forEach((r,j)=>{const x=xS(r.i),y=pfY(r.avg_reading);j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.strokeStyle='rgba(63,185,80,.12)';ctx.lineWidth=8;ctx.lineJoin='round';ctx.stroke();
+    ctx.beginPath();pfI.forEach((r,j)=>{const x=xS(r.i),y=pfY(r.avg_reading);j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.strokeStyle='#3fb950';ctx.lineWidth=2.5;ctx.stroke();
   }
-
-  // ── PF line ───────────────────────────────────────────────────
-  const pfIndexed = graphData.pf.map(r => ({ i: allDates.indexOf(r.date), ...r })).filter(r => r.i >= 0);
-
-  if (pfIndexed.length > 1) {
-    // Shadow
-    ctx.beginPath();
-    pfIndexed.forEach((r, j) => {
-      const x = xScale(r.i), y = pfY(r.avg_reading);
-      j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = 'rgba(63,185,80,0.15)';
-    ctx.lineWidth   = 8;
-    ctx.lineJoin    = 'round';
-    ctx.stroke();
-
-    // Line
-    ctx.beginPath();
-    pfIndexed.forEach((r, j) => {
-      const x = xScale(r.i), y = pfY(r.avg_reading);
-      j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = '#3fb950';
-    ctx.lineWidth   = 2.5;
-    ctx.stroke();
-  }
-
-  // ── PF dots ───────────────────────────────────────────────────
-  pfIndexed.forEach(r => {
-    const x   = xScale(r.i);
-    const y   = pfY(r.avg_reading);
-    const col = pfZoneColor(r.avg_reading);
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI*2);
-    ctx.fillStyle   = col;
-    ctx.fill();
-    ctx.strokeStyle = var_bg();
-    ctx.lineWidth   = 2;
-    ctx.stroke();
+  pfI.forEach(r=>{
+    const x=xS(r.i),y=pfY(r.avg_reading);
+    ctx.beginPath();ctx.arc(x,y,4.5,0,Math.PI*2);
+    ctx.fillStyle=pfCol(r.avg_reading);ctx.fill();
+    ctx.strokeStyle=cv('--bg');ctx.lineWidth=2;ctx.stroke();
   });
-
-  // ── Personal best line ────────────────────────────────────────
-  const pbY = pfY(PERSONAL_BEST);
-  ctx.setLineDash([6, 4]);
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-  ctx.lineWidth   = 1;
-  ctx.beginPath(); ctx.moveTo(PAD.left, pbY); ctx.lineTo(PAD.left + CW, pbY); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '10px DM Sans, sans-serif';
-  ctx.textAlign = 'right';
-  ctx.fillText('PB ' + PERSONAL_BEST, PAD.left - 4, pbY - 3);
-
-  // ── Hover interaction ─────────────────────────────────────────
-  canvas.onmousemove = (e) => {
-    const rect  = canvas.getBoundingClientRect();
-    const mx    = e.clientX - rect.left;
-    const my    = e.clientY - rect.top;
-
-    // Find nearest date
-    let nearestI = -1, nearestDist = Infinity;
-    allDates.forEach((_, i) => {
-      const x = xScale(i);
-      const d = Math.abs(mx - x);
-      if (d < nearestDist) { nearestDist = d; nearestI = i; }
-    });
-
-    if (nearestI < 0 || nearestDist > 30) { tooltip.style.display = 'none'; return; }
-
-    const date     = allDates[nearestI];
-    const pfEntry  = graphData.pf.find(r => r.date === date);
-    const inhEntry = graphData.inhaler.find(r => r.date === date);
-
-    if (!pfEntry && !inhEntry) { tooltip.style.display = 'none'; return; }
-
-    let html = `<div class="tt-date">${formatDate(date)}</div>`;
-    if (pfEntry) {
-      html += `<div class="tt-row"><span>Avg peak flow</span><span>${Math.round(pfEntry.avg_reading)} L/min</span></div>`;
-      html += `<div class="tt-row"><span>Best</span><span>${pfEntry.max_reading}</span></div>`;
-      html += `<div class="tt-row"><span>Lowest</span><span>${pfEntry.min_reading}</span></div>`;
-      html += `<div class="tt-row"><span>Readings</span><span>${pfEntry.count}</span></div>`;
-    }
-    if (inhEntry) {
-      html += `<div class="tt-row"><span>Inhaler puffs</span><span>${inhEntry.total_puffs} 💙</span></div>`;
-    }
-
-    tooltip.innerHTML = html;
-    tooltip.style.display = 'block';
-
-    // Position tooltip
-    const tx = e.clientX + 14;
-    const ty = e.clientY - 10;
-    tooltip.style.left = Math.min(tx, window.innerWidth - 240) + 'px';
-    tooltip.style.top  = Math.min(ty, window.innerHeight - 160) + 'px';
+  // PB line
+  const pby=pfY(PB);
+  ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(255,255,255,.14)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(P.l,pby);ctx.lineTo(P.l+CW,pby);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='right';
+  ctx.fillText('PB '+PB,P.l-4,pby-2);
+  // Tooltip hover
+  canvas.onmousemove=e=>{
+    const rc=canvas.getBoundingClientRect(),mx=e.clientX-rc.left;
+    let ni=-1,nd=Infinity;
+    allD.forEach((_,i)=>{const d=Math.abs(mx-xS(i));if(d<nd){nd=d;ni=i;}});
+    if(ni<0||nd>32){tt.style.display='none';return;}
+    const date=allD[ni];
+    const pe=gData.pf.find(r=>r.date===date),be=gData.blue.find(r=>r.date===date),pk=gData.pink.find(r=>r.date===date);
+    if(!pe&&!be&&!pk){tt.style.display='none';return;}
+    let h=`<div class="ttd">${date.slice(5)}</div>`;
+    if(pe){h+=`<div class="ttr"><span>Avg PF</span><span>${Math.round(pe.avg_reading)}</span></div><div class="ttr"><span>Best</span><span>${pe.max_reading}</span></div>`;}
+    if(be) h+=`<div class="ttr"><span>Blue 💙</span><span>${be.total_puffs} puffs</span></div>`;
+    if(pk) h+=`<div class="ttr"><span>Pink 🌸</span><span>${pk.total_puffs} puffs</span></div>`;
+    tt.innerHTML=h;tt.style.display='block';
+    tt.style.left=Math.min(e.clientX+14,window.innerWidth-220)+'px';
+    tt.style.top=Math.min(e.clientY-10,window.innerHeight-140)+'px';
   };
+  canvas.onmouseleave=()=>{tt.style.display='none';};
+}
+window.addEventListener('resize',()=>{if(curTab==='graphs')drawGraph();if(curTab==='analytics')renderAnalytics();});
 
-  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+// ── Analytics ────────────────────────────────────────────────────
+function setARange(days,btn){
+  aRange=days;
+  document.querySelectorAll('.rsel button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAnalytics();
 }
 
-function var_bg() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+async function renderAnalytics(){
+  const t=today(), from=aRange===0?'2000-01-01':daysAgo(aRange-1);
+  const data=await call('GET',`/api/analytics?from=${from}&to=${t}`);
+  if(!data||data.error)return;
+  const {pinkDayData:pd,hourlyPF:hpf,hourlyBlue:hbl,weeklyPF:wk,blueByDow:dow,adherence:adh}=data;
+
+  // KPI cards
+  document.getElementById('an-adh').textContent=adh.rate+'%';
+  document.getElementById('an-adh-s').textContent=`${adh.daysWithPink} of ${adh.totalDays} days`;
+
+  if(pd.length){
+    const hrs=pd.map(d=>d.dose_hour).filter(h=>h!=null);
+    const ah=Math.round(avg(hrs));
+    document.getElementById('an-ptime').textContent=`${String(ah).padStart(2,'0')}:00`;
+  } else { document.getElementById('an-ptime').textContent='—'; }
+
+  const weeks=wk||[];
+  let tText='—',tSub='need more data',tCls='';
+  if(weeks.length>=2){
+    const h=Math.floor(weeks.length/2);
+    const diff=avg(weeks.slice(h).map(w=>w.avg_pf))-avg(weeks.slice(0,h).map(w=>w.avg_pf));
+    if(diff>5){tText='+'+Math.round(diff);tSub='L/min improving ↑';tCls='good';}
+    else if(diff<-5){tText=String(Math.round(diff));tSub='L/min declining ↓';tCls='bad';}
+    else{tText='~0';tSub='L/min stable';tCls='';}
+  }
+  document.getElementById('an-trend').textContent=tText;
+  document.getElementById('an-trend-s').textContent=tSub;
+  document.getElementById('an-trend-c').className=`acard ${tCls}`;
+
+  const bAvg=pd.length?(avg(pd.map(d=>d.blue_puffs))).toFixed(1):'—';
+  document.getElementById('an-bavg').textContent=bAvg;
+
+  // Timing buckets
+  const BUCKETS=[
+    {lbl:'Early (5–8am)',  min:5, max:8 },
+    {lbl:'Morning (8–11)', min:8, max:11},
+    {lbl:'Midday (11–14)', min:11,max:14},
+    {lbl:'Afternoon (14+)',min:14,max:25},
+  ];
+  const bkts=BUCKETS.map(b=>{
+    const days=pd.filter(d=>d.dose_hour>=b.min&&d.dose_hour<b.max);
+    const pfDays=days.filter(d=>d.avg_pf>0);
+    return{lbl:b.lbl,n:days.length,avgBlue:days.length?avg(days.map(d=>d.blue_puffs)):null,avgPF:pfDays.length?avg(pfDays.map(d=>d.avg_pf)):null};
+  }).filter(b=>b.n>0);
+
+  renderTBars('t-blue',bkts,'avgBlue',v=>v.toFixed(1)+' puffs/day',b=>`${b.n}d`,'#58a6ff',true);
+  renderTBars('t-pf',bkts,'avgPF',v=>Math.round(v)+' L/min',b=>`${b.n}d`,'#3fb950',false);
+
+  // Hourly canvases
+  drawHCanvas('c-hpf',hpf,'hour','avg_reading','#3fb950',v=>Math.round(v));
+  drawHCanvas('c-hblue',hbl,'hour','total_puffs','#58a6ff',v=>v);
+  drawDowCanvas('c-dow',dow);
+
+  // Weekly bars
+  const wbEl=document.getElementById('wbars');
+  if(!weeks.length){wbEl.innerHTML='<div class="empty" style="flex:1">No data yet</div>';}
+  else{
+    const mx=Math.max(...weeks.map(w=>w.avg_pf),PB);
+    wbEl.innerHTML=weeks.slice(-12).map(w=>{
+      const pct=Math.round((w.avg_pf/mx)*100), col=pfCol(w.avg_pf);
+      return `<div class="wbc"><div class="wbv" style="color:${col}">${Math.round(w.avg_pf)}</div><div class="wb" style="height:${pct}%;background:${col}22;border:1px solid ${col}55"></div><div class="wbl">${w.week_start?w.week_start.slice(5):''}</div></div>`;
+    }).join('');
+  }
+
+  // Adherence ring
+  const rEl=document.getElementById('adh-ring');
+  rEl.innerHTML=`<div class="adh-ring"><canvas id="adh-c" width="88" height="88"></canvas><div class="adh-rl">${adh.rate}%</div></div><div class="adh-meta"><div class="adh-mr">Days taken: <span>${adh.daysWithPink}</span></div><div class="adh-mr">Days tracked: <span>${adh.totalDays}</span></div><div class="adh-mr">Status: <span style="color:${adh.rate>=80?'var(--pf-good)':adh.rate>=50?'var(--pf-fair)':'var(--pf-poor)'}">${adh.rate>=80?'Excellent 🌟':adh.rate>=60?'Good 👍':adh.rate>=40?'Fair ⚠️':'Needs work 🔴'}</span></div></div>`;
+  const rc=document.getElementById('adh-c').getContext('2d');
+  rc.strokeStyle='#30363d';rc.lineWidth=8;
+  rc.beginPath();rc.arc(44,44,32,-Math.PI/2,Math.PI*1.5);rc.stroke();
+  if(adh.rate>0){
+    rc.strokeStyle='#e879f9';rc.lineWidth=8;rc.lineCap='round';
+    rc.beginPath();rc.arc(44,44,32,-Math.PI/2,(adh.rate/100)*Math.PI*2-Math.PI/2);rc.stroke();
+  }
+
+  // Insights
+  document.getElementById('insights').innerHTML=buildInsights(bkts,adh.rate,weeks,hpf,hbl,pd).map(i=>`<div class="ii ${i.t}"><div class="ico">${i.i}</div><div>${i.txt}</div></div>`).join('');
 }
 
-window.addEventListener('resize', () => { if (currentTab === 'graphs') drawGraph(); });
+function renderTBars(id,bkts,key,valFn,cntFn,color,lowerBetter){
+  const el=document.getElementById(id);
+  const vals=bkts.map(b=>b[key]).filter(v=>v!=null);
+  if(!vals.length){el.innerHTML='<div class="empty">Not enough data yet — keep logging your pink inhaler daily!</div>';return;}
+  const mx=Math.max(...vals)||1;
+  const best=lowerBetter?Math.min(...vals):Math.max(...vals);
+  el.innerHTML=bkts.map(b=>{
+    const v=b[key]; if(v==null)return'';
+    const pct=Math.max(5,Math.round((v/mx)*100));
+    const isBest=v===best;
+    const c=isBest?(lowerBetter?'#3fb950':color):color;
+    return `<div class="trow"><div class="tlbl">${b.lbl}</div><div class="twrap"><div class="tfill" style="width:${pct}%;background:${c}35;border:1px solid ${c}70;color:${c}">${valFn(v)}</div></div><div class="tmeta">${cntFn(b)}${isBest?' ⭐':''}</div></div>`;
+  }).join('');
+}
 
-// ═══════════════════════════════════════════════════════════════
-// AUTO-LOGIN (session)
-// ═══════════════════════════════════════════════════════════════
-const savedToken = sessionStorage.getItem('at_token');
-if (savedToken) { AUTH_TOKEN = savedToken; showApp(); }
+function drawHCanvas(id,data,xKey,yKey,color,yFmt){
+  const canvas=document.getElementById(id); if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const rc=canvas.parentElement.getBoundingClientRect();
+  const W=rc.width||300, H=rc.height||145;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  const P={t:10,r:8,b:22,l:34};
+  const CW=W-P.l-P.r, CH=H-P.t-P.b;
+  if(!data.length){ctx.fillStyle='#7d8590';ctx.font='12px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('No data yet',W/2,H/2);return;}
+  const mx=Math.max(...data.map(d=>d[yKey]),1);
+  const full=Array.from({length:24},(_,h)=>{const r=data.find(d=>d[xKey]===h);return{h,v:r?r[yKey]:0};});
+  const bw=Math.max(2,CW/24-1.5);
+  full.forEach(({h,v})=>{
+    if(!v)return;
+    const x=P.l+(h/24)*CW, barH=Math.max(2,(v/mx)*CH), y=P.t+CH-barH;
+    ctx.fillStyle=color+'28';ctx.strokeStyle=color+'70';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y,bw,barH,2);ctx.fill();ctx.stroke();
+  });
+  ctx.fillStyle='#7d8590';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='center';
+  [0,6,12,18,23].forEach(h=>{ctx.fillText(h+'h',P.l+(h/24)*CW+bw/2,H-P.b+12);});
+  ctx.textAlign='right';ctx.fillStyle='#7d859099';ctx.font='9px DM Sans,sans-serif';
+  ctx.fillText(yFmt(mx),P.l-3,P.t+9);
+}
+
+function drawDowCanvas(id,data){
+  const canvas=document.getElementById(id); if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const rc=canvas.parentElement.getBoundingClientRect();
+  const W=rc.width||300, H=rc.height||115;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const full=Array.from({length:7},(_,i)=>{const r=data.find(d=>+d.dow===i);return{lbl:DAYS[i],v:r?r.avg_puffs:0};});
+  const P={t:14,r:8,b:26,l:8};
+  const CW=W-P.l-P.r, CH=H-P.t-P.b;
+  const mx=Math.max(...full.map(d=>d.v),1);
+  const bw=CW/7-5;
+  const mxV=Math.max(...full.map(d=>d.v));
+  full.forEach(({lbl,v},i)=>{
+    const x=P.l+(i/7)*CW+2, barH=Math.max(2,(v/mx)*CH), y=P.t+CH-barH;
+    const isMax=v===mxV&&v>0;
+    ctx.fillStyle=isMax?'rgba(240,136,62,.55)':'rgba(240,136,62,.2)';
+    ctx.strokeStyle=isMax?'#f0883e':'rgba(240,136,62,.45)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y,bw,barH,3);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#7d8590';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='center';
+    ctx.fillText(lbl,x+bw/2,H-P.b+12);
+    if(v>0){ctx.fillStyle=isMax?'#f0883e':'#7d8590';ctx.font='8px DM Sans,sans-serif';ctx.fillText(v.toFixed(1),x+bw/2,y-2);}
+  });
+}
+
+function buildInsights(bkts,adhRate,weeks,hpf,hbl,pd){
+  const out=[];
+  // Adherence
+  if(adhRate>=80)
+    out.push({t:'good',i:'🌟',txt:`Great adherence at <strong>${adhRate}%</strong> — consistently taking your preventer is the single most important thing you can do for asthma control.`});
+  else if(adhRate>=50)
+    out.push({t:'warn',i:'⚠️',txt:`Adherence is <strong>${adhRate}%</strong>. Aim for every single day — even a few missed doses reduces the preventer's protective effect significantly.`});
+  else if(adhRate>0)
+    out.push({t:'warn',i:'❗',txt:`Pink inhaler taken only <strong>${adhRate}%</strong> of days. It only works when taken consistently — daily use is essential, not just on bad days.`});
+  else
+    out.push({t:'info',i:'🌸',txt:'No pink inhaler data yet for this period. Start logging your daily preventer doses to unlock the timing analysis.'});
+
+  // Timing → blue
+  if(bkts.length>=2){
+    const wb=bkts.filter(b=>b.avgBlue!=null);
+    if(wb.length>=2){
+      const best=wb.reduce((a,b)=>a.avgBlue<b.avgBlue?a:b);
+      const worst=wb.reduce((a,b)=>a.avgBlue>b.avgBlue?a:b);
+      const diff=worst.avgBlue-best.avgBlue;
+      if(diff>0.5)
+        out.push({t:'pink',i:'🌸',txt:`Taking your pink inhaler during the <strong>${best.lbl}</strong> window is linked to <strong>${diff.toFixed(1)} fewer blue puffs per day</strong> vs <strong>${worst.lbl}</strong>. This is your most actionable finding.`});
+      else
+        out.push({t:'info',i:'🕐',txt:'Blue inhaler use looks similar regardless of pink inhaler timing for now — keep logging for clearer patterns.'});
+    }
+    const wp=bkts.filter(b=>b.avgPF>0);
+    if(wp.length>=2){
+      const bpf=wp.reduce((a,b)=>a.avgPF>b.avgPF?a:b);
+      const wpf=wp.reduce((a,b)=>a.avgPF<b.avgPF?a:b);
+      const diff=bpf.avgPF-wpf.avgPF;
+      if(diff>20)
+        out.push({t:'good',i:'💨',txt:`Peak flow averages <strong>${Math.round(diff)} L/min higher</strong> on days when you take pink in the <strong>${bpf.lbl}</strong> slot vs ${wpf.lbl}.`});
+    }
+  }
+
+  // Trend
+  if(weeks.length>=3){
+    const r3=weeks.slice(-3).map(w=>w.avg_pf);
+    const e3=weeks.slice(-6,-3).map(w=>w.avg_pf);
+    if(e3.length){
+      const diff=avg(r3)-avg(e3);
+      if(diff>10) out.push({t:'good',i:'📈',txt:`Your peak flow has improved by ~<strong>${Math.round(diff)} L/min</strong> over recent weeks. Keep it up!`});
+      else if(diff<-10) out.push({t:'warn',i:'📉',txt:`Peak flow has dropped ~<strong>${Math.round(Math.abs(diff))} L/min</strong> in recent weeks. Consider discussing with your GP if this continues.`});
+    }
+  }
+
+  // Best/worst hour for PF
+  if(hpf.length>=3){
+    const best=hpf.reduce((a,b)=>a.avg_reading>b.avg_reading?a:b);
+    const worst=hpf.reduce((a,b)=>a.avg_reading<b.avg_reading?a:b);
+    if(best.avg_reading-worst.avg_reading>30)
+      out.push({t:'info',i:'⏰',txt:`Your lung function is typically best around <strong>${best.hour}:00</strong> (avg ${Math.round(best.avg_reading)} L/min) and lowest near <strong>${worst.hour}:00</strong> (avg ${Math.round(worst.avg_reading)} L/min). Morning dips are a classic asthma pattern.`});
+  }
+
+  // Blue inhaler peak time
+  if(hbl.length){
+    const peak=hbl.reduce((a,b)=>a.total_puffs>b.total_puffs?a:b);
+    out.push({t:'info',i:'💙',txt:`You most often reach for your blue inhaler around <strong>${peak.hour}:00</strong>. Planning your activities — and ensuring your pink inhaler is taken beforehand — may help on those hours.`});
+  }
+
+  // Data quality note
+  if(pd.length<7)
+    out.push({t:'info',i:'📊',txt:`Analytics sharpen with more data. You have <strong>${pd.length}</strong> day${pd.length!==1?'s':''} of pink inhaler records — aim for 2–4 weeks for reliable patterns.`});
+
+  return out;
+}
+
+// ── Auto-login ───────────────────────────────────────────────────
+const saved=sessionStorage.getItem('at');
+if(saved){TOKEN=saved;showApp();}
 </script>
 </body>
 </html>
