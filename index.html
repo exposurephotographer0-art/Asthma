@@ -601,6 +601,8 @@ async function showApp(){
   const t=nowTime();
   ['pf-time','blue-time','pink-time'].forEach(id=>document.getElementById(id).value=t);
   initSym('dsyms');
+  // Ensure all DB tables exist (creates pink_inhaler_use if missing)
+  try { await call('GET','/api/init'); } catch(e) {}
   await Promise.all([loadDash(),loadNote()]);
 }
 
@@ -611,9 +613,9 @@ function showTab(name,btn){
   document.getElementById('tab-'+name).classList.add('active');
   document.querySelectorAll(`[onclick*="showTab('${name}"]`).forEach(b=>b.classList.add('active'));
   curTab=name;
-  if(name==='calendar')  renderCal();
-  if(name==='graphs')    renderGraph();
-  if(name==='analytics') renderAnalytics();
+  if(name==='calendar')  renderCal().catch(e=>console.warn('cal',e));
+  if(name==='graphs')    renderGraph().catch(e=>console.warn('graph',e));
+  if(name==='analytics') renderAnalytics().catch(e=>console.warn('analytics',e));
 }
 
 // ── Symptoms ────────────────────────────────────────────────────
@@ -628,14 +630,22 @@ function setSyms(cid,syms){ document.querySelectorAll(`#${cid} .sym-check`).forE
 // ── Dashboard ───────────────────────────────────────────────────
 async function loadDash(){
   const t=today(), w=daysAgo(6);
+  const safe = p => p.catch(()=>null);
   const [pf,blue,pink,sum]=await Promise.all([
-    call('GET',`/api/peakflow?from=${t}&to=${t}`),
-    call('GET',`/api/inhaler?from=${t}&to=${t}`),
-    call('GET',`/api/pink?from=${t}&to=${t}`),
-    call('GET',`/api/summary?from=${w}&to=${t}`),
+    safe(call('GET',`/api/peakflow?from=${t}&to=${t}`)),
+    safe(call('GET',`/api/inhaler?from=${t}&to=${t}`)),
+    safe(call('GET',`/api/pink?from=${t}&to=${t}`)),
+    safe(call('GET',`/api/summary?from=${w}&to=${t}`)),
   ]);
-  renderTodayPF(pf); renderTodayBlue(blue); renderTodayPink(pink);
-  renderStats(pf,blue,pink,sum);
+  renderTodayPF(Array.isArray(pf)?pf:[]);
+  renderTodayBlue(Array.isArray(blue)?blue:[]);
+  renderTodayPink(Array.isArray(pink)?pink:[]);
+  renderStats(
+    Array.isArray(pf)?pf:[],
+    Array.isArray(blue)?blue:[],
+    Array.isArray(pink)?pink:[],
+    (sum&&!sum.error)?sum:{peakFlow:[],inhalerUse:[],pinkInhaler:[]}
+  );
 }
 
 function renderStats(pf,blue,pink,sum){
@@ -682,9 +692,11 @@ function renderTodayPink(e){
 }
 
 async function loadNote(){
-  const d=await call('GET',`/api/notes/${today()}`);
-  if(d.note) document.getElementById('daily-note').value=d.note;
-  if(d.symptoms) setSyms('dsyms',JSON.parse(d.symptoms));
+  try {
+    const d=await call('GET',`/api/notes/${today()}`);
+    if(d&&d.note) document.getElementById('daily-note').value=d.note;
+    if(d&&d.symptoms) setSyms('dsyms',JSON.parse(d.symptoms));
+  } catch(e) {}
 }
 
 // ── Log actions ─────────────────────────────────────────────────
