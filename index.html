@@ -285,6 +285,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div class="hdr-right">
       <span id="today-label"></span>
       <button class="btn-logout" id="setup-btn" onclick="runSetup()" title="Run once after updating the app to create any new database tables">⚙️ Setup DB</button>
+      <button class="btn-logout" onclick="exportData()" title="Export all data for Claude AI analysis">📤 Export for Claude</button>
       <button class="btn-logout" onclick="logout()">Sign out</button>
     </div>
   </header>
@@ -294,6 +295,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div class="brand">Breath 🌬️</div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn-logout" id="setup-btn-m" onclick="runSetup()" style="font-size:.75rem;padding:5px 10px" title="Run once after updating the app">⚙️ Setup</button>
+      <button class="btn-logout" onclick="exportData()" style="font-size:.75rem;padding:5px 10px" title="Export for Claude">📤 Export</button>
       <div class="mhdate" id="mhdate"></div>
     </div>
   </header>
@@ -539,6 +541,22 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
 
 <div class="tt" id="tt"></div>
 <div class="flash" id="flash"></div>
+
+<!-- EXPORT MODAL -->
+<div class="mo" id="export-modal">
+  <div class="modal" style="max-height:88svh">
+    <div class="mhandle"></div>
+    <button class="mclose" onclick="closeExport()">✕</button>
+    <h2>📤 Export for Claude</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Copy this and paste it into a new Claude conversation to get a detailed analysis of your asthma data.</p>
+    <div id="export-status" style="display:flex;align-items:center;gap:9px;color:var(--muted);font-size:.86rem;margin-bottom:12px"><div class="spin"></div>Fetching all your data…</div>
+    <textarea id="export-text" style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:monospace;font-size:.75rem;padding:14px;resize:none;min-height:220px;line-height:1.55;outline:none" readonly></textarea>
+    <div id="export-actions" style="display:none;margin-top:12px;display:none;flex-direction:column;gap:9px">
+      <button class="msave" onclick="copyExport()" id="copy-btn">📋 Copy to Clipboard</button>
+      <button onclick="downloadExport()" style="width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--font-sans);font-size:.9rem;cursor:pointer;min-height:44px">⬇️ Download as .txt file</button>
+    </div>
+  </div>
+</div>
 <script>
 // ── Config ──────────────────────────────────────────────────────
 const PB             = 620;
@@ -608,6 +626,214 @@ async function runSetup(){
     btns.forEach(b=>{b.textContent='❌ Error';b.disabled=false;});
     flash('Could not reach server');
   }
+}
+
+// ── Export ──────────────────────────────────────────────────────
+let exportText = '';
+
+function closeExport(){ document.getElementById('export-modal').classList.remove('open'); }
+document.addEventListener('DOMContentLoaded',()=>{
+  const m=document.getElementById('export-modal');
+  if(m) m.addEventListener('click',function(e){if(e.target===this)closeExport();});
+});
+
+async function exportData(){
+  exportText='';
+  document.getElementById('export-modal').classList.add('open');
+  document.getElementById('export-text').style.display='none';
+  document.getElementById('export-actions').style.display='none';
+  const st=document.getElementById('export-status');
+  st.style.display='flex'; st.innerHTML='<div class="spin"></div>Fetching all your data…';
+
+  try {
+    // Fetch everything — use a wide date range
+    const from='2020-01-01', to=today();
+    st.innerHTML='<div class="spin"></div>Loading peak flow records…';
+    const [pf, blue, pink, notes, timedNotes, analytics] = await Promise.all([
+      call('GET',`/api/peakflow?from=${from}&to=${to}`),
+      call('GET',`/api/inhaler?from=${from}&to=${to}`),
+      call('GET',`/api/pink?from=${from}&to=${to}`),
+      call('GET',`/api/notes?from=${from}&to=${to}`),
+      call('GET',`/api/timednotes?from=${from}&to=${to}`).catch(()=>[]),
+      call('GET',`/api/analytics?from=${daysAgo(90)}&to=${to}`).catch(()=>({})),
+    ]);
+
+    st.innerHTML='<div class="spin"></div>Building report…';
+
+    const pfArr   = Array.isArray(pf)   ? pf   : [];
+    const blueArr = Array.isArray(blue) ? blue : [];
+    const pinkArr = Array.isArray(pink) ? pink : [];
+    const notesArr= Array.isArray(notes)? notes: [];
+    const timedArr= Array.isArray(timedNotes)? timedNotes: [];
+
+    // Summary stats
+    const pfVals = pfArr.map(r=>r.reading);
+    const pfMax  = pfVals.length ? Math.max(...pfVals) : null;
+    const pfMin  = pfVals.length ? Math.min(...pfVals) : null;
+    const pfAvg  = pfVals.length ? Math.round(pfVals.reduce((a,b)=>a+b,0)/pfVals.length) : null;
+    const totalBlue = blueArr.reduce((s,r)=>s+r.puffs,0);
+    const totalPink = pinkArr.reduce((s,r)=>s+r.puffs,0);
+
+    // Date range of data
+    const allDates = [...pfArr,...blueArr,...pinkArr,...notesArr].map(r=>r.date).filter(Boolean).sort();
+    const firstDate = allDates[0]||from, lastDate=allDates[allDates.length-1]||to;
+    const spanDays = Math.round((new Date(lastDate)-new Date(firstDate))/864e5)+1;
+
+    // Unique days with pink
+    const pinkDays = new Set(pinkArr.map(r=>r.date)).size;
+    const adherence = spanDays>0 ? Math.round(pinkDays/spanDays*100) : 0;
+
+    // All unique symptom mentions
+    const symCount={};
+    [...notesArr,...timedArr].forEach(n=>{
+      try{ const s=JSON.parse(n.symptoms||'[]'); s.forEach(x=>{symCount[x]=(symCount[x]||0)+1;}); }catch{}
+    });
+
+    // Build the export text
+    const lines=[];
+    lines.push('═══════════════════════════════════════════════════════');
+    lines.push('  ASTHMA TRACKER — FULL DATA EXPORT');
+    lines.push(`  Exported: ${new Date().toLocaleString('en-GB')}`);
+    lines.push(`  Period: ${firstDate} → ${lastDate} (${spanDays} days)`);
+    lines.push('═══════════════════════════════════════════════════════');
+    lines.push('');
+    lines.push('CONTEXT FOR CLAUDE');
+    lines.push('──────────────────');
+    lines.push(`Personal best peak flow: ${PB} L/min`);
+    lines.push(`Green zone (≥80% PB): ≥${GREEN_T} L/min`);
+    lines.push(`Amber zone (50–79%): ${Math.round(AMBER_T)}–${GREEN_T-1} L/min`);
+    lines.push(`Red zone (<50%): <${Math.round(AMBER_T)} L/min`);
+    lines.push('Blue inhaler = reliever (Salbutamol/Ventolin type)');
+    lines.push('Pink inhaler = preventer (daily steroid inhaler)');
+    lines.push('');
+    lines.push('SUMMARY STATISTICS');
+    lines.push('──────────────────');
+    lines.push(`Peak flow readings: ${pfArr.length} total`);
+    if(pfMax!==null){
+      lines.push(`  Best: ${pfMax} L/min (${Math.round(pfMax/PB*100)}% of PB)`);
+      lines.push(`  Worst: ${pfMin} L/min (${Math.round(pfMin/PB*100)}% of PB)`);
+      lines.push(`  Average: ${pfAvg} L/min (${Math.round(pfAvg/PB*100)}% of PB)`);
+    }
+    lines.push(`Blue inhaler uses: ${blueArr.length} events, ${totalBlue} puffs total`);
+    lines.push(`  Average per day: ${spanDays>0?(totalBlue/spanDays).toFixed(1):0} puffs/day`);
+    lines.push(`Pink (preventer) doses: ${pinkArr.length} events, ${totalPink} puffs total`);
+    lines.push(`  Adherence: ${pinkDays}/${spanDays} days (${adherence}%)`);
+    if(Object.keys(symCount).length){
+      lines.push('Symptom frequency (all time):');
+      Object.entries(symCount).sort((a,b)=>b[1]-a[1]).forEach(([s,c])=>lines.push(`  ${s}: ${c} occurrences`));
+    }
+    lines.push('');
+
+    // Peak flow by date
+    if(pfArr.length){
+      lines.push('PEAK FLOW READINGS (all time)');
+      lines.push('──────────────────────────────');
+      lines.push('Date       | Time  | L/min | Zone   | Comment');
+      lines.push('-----------|-------|-------|--------|--------');
+      pfArr.forEach(r=>{
+        const z=r.reading>=GREEN_T?'Green':r.reading>=AMBER_T?'Amber':'Red';
+        const pct=Math.round(r.reading/PB*100);
+        lines.push(`${r.date} | ${r.time} | ${String(r.reading).padStart(5)} | ${z.padEnd(6)} (${pct}%) | ${r.comment||''}`);
+      });
+      lines.push('');
+    }
+
+    // Blue inhaler
+    if(blueArr.length){
+      lines.push('BLUE INHALER USE (all time)');
+      lines.push('────────────────────────────');
+      lines.push('Date       | Time  | Puffs | Reason');
+      lines.push('-----------|-------|-------|-------');
+      blueArr.forEach(r=>lines.push(`${r.date} | ${r.time} | ${String(r.puffs).padStart(5)} | ${r.reason||''}`));
+      lines.push('');
+    }
+
+    // Pink inhaler
+    if(pinkArr.length){
+      lines.push('PINK INHALER (PREVENTER) USE (all time)');
+      lines.push('────────────────────────────────────────');
+      lines.push('Date       | Time  | Puffs | Note');
+      lines.push('-----------|-------|-------|-----');
+      pinkArr.forEach(r=>lines.push(`${r.date} | ${r.time} | ${String(r.puffs).padStart(5)} | ${r.comment||''}`));
+      lines.push('');
+    }
+
+    // Notes (timed)
+    const allNotes=[
+      ...timedArr.map(n=>({...n,source:'timed'})),
+      ...notesArr.filter(n=>n.note||n.symptoms).map(n=>({...n,time:n.time||'--:--',source:'daily'}))
+    ].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.time.localeCompare(b.time));
+
+    if(allNotes.length){
+      lines.push('NOTES & SYMPTOMS LOG (all time)');
+      lines.push('────────────────────────────────');
+      allNotes.forEach(n=>{
+        let syms=[];
+        try{syms=JSON.parse(n.symptoms||'[]');}catch{}
+        const symStr=syms.length?`[${syms.join(', ')}]`:'';
+        const noteStr=n.note||'';
+        if(symStr||noteStr)
+          lines.push(`${n.date} ${n.time} ${symStr}${symStr&&noteStr?' — ':''}${noteStr}`);
+      });
+      lines.push('');
+    }
+
+    // Recent analytics (90 days)
+    if(analytics.weeklyPF&&analytics.weeklyPF.length){
+      lines.push('WEEKLY PEAK FLOW TREND (last 90 days)');
+      lines.push('──────────────────────────────────────');
+      lines.push('Week start | Avg L/min | Max L/min | Days');
+      lines.push('-----------|-----------|-----------|-----');
+      analytics.weeklyPF.forEach(w=>lines.push(`${w.week_start} | ${String(Math.round(w.avg_pf)).padStart(9)} | ${String(w.max_pf).padStart(9)} | ${w.days_with_data}`));
+      lines.push('');
+    }
+
+    lines.push('═══════════════════════════════════════════════════════');
+    lines.push('SUGGESTED PROMPT FOR CLAUDE:');
+    lines.push('──────────────────────────────');
+    lines.push('Please analyse my asthma data above. I would like you to:');
+    lines.push('1. Summarise my overall asthma control over this period');
+    lines.push('2. Identify any patterns (time of day, day of week, trends)');
+    lines.push('3. Comment on my preventer inhaler adherence and timing');
+    lines.push('4. Flag any concerning periods or readings');
+    lines.push('5. Give me practical, actionable recommendations');
+    lines.push('6. Note anything I should discuss with my GP or asthma nurse');
+    lines.push('═══════════════════════════════════════════════════════');
+
+    exportText = lines.join('\n');
+
+    document.getElementById('export-text').value=exportText;
+    document.getElementById('export-text').style.display='block';
+    document.getElementById('export-actions').style.display='flex';
+    st.style.display='none';
+
+  } catch(e){
+    st.innerHTML=`<span style="color:var(--danger)">❌ Export failed: ${e.message}</span>`;
+  }
+}
+
+async function copyExport(){
+  try {
+    await navigator.clipboard.writeText(exportText);
+    const btn=document.getElementById('copy-btn');
+    btn.textContent='✅ Copied!';
+    setTimeout(()=>btn.textContent='📋 Copy to Clipboard',2500);
+    flash('Copied to clipboard ✓');
+  } catch(e){
+    // Fallback for browsers that block clipboard
+    document.getElementById('export-text').select();
+    document.execCommand('copy');
+    flash('Copied ✓');
+  }
+}
+
+function downloadExport(){
+  const blob=new Blob([exportText],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`asthma-data-${today()}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function call(method,path,body){
