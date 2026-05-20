@@ -284,6 +284,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     </nav>
     <div class="hdr-right">
       <span id="today-label"></span>
+      <button class="btn-logout" id="setup-btn" onclick="runSetup()" title="Run once after updating the app to create any new database tables">⚙️ Setup DB</button>
       <button class="btn-logout" onclick="logout()">Sign out</button>
     </div>
   </header>
@@ -291,7 +292,10 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
   <!-- Mobile header -->
   <header class="mhdr">
     <div class="brand">Breath 🌬️</div>
-    <div class="mhdate" id="mhdate"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-logout" id="setup-btn-m" onclick="runSetup()" style="font-size:.75rem;padding:5px 10px" title="Run once after updating the app">⚙️ Setup</button>
+      <div class="mhdate" id="mhdate"></div>
+    </div>
   </header>
 
   <main class="app-content">
@@ -585,6 +589,25 @@ function logout(){
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('pwd-input').value='';
+}
+
+async function runSetup(){
+  const btns=['setup-btn','setup-btn-m'].map(id=>document.getElementById(id)).filter(Boolean);
+  btns.forEach(b=>{b.textContent='⏳ Setting up…';b.disabled=true;});
+  try {
+    const d=await call('GET','/api/init');
+    if(d.ok){
+      btns.forEach(b=>{b.textContent='✅ Done!';b.style.borderColor='var(--green)';b.style.color='var(--green)';});
+      flash('Database tables ready ✓');
+      setTimeout(()=>btns.forEach(b=>{b.textContent='⚙️ Setup DB';b.disabled=false;b.style.borderColor='';b.style.color='';}),3000);
+    } else {
+      btns.forEach(b=>{b.textContent='❌ Failed';b.disabled=false;});
+      flash('Setup failed — check console');
+    }
+  } catch(e){
+    btns.forEach(b=>{b.textContent='❌ Error';b.disabled=false;});
+    flash('Could not reach server');
+  }
 }
 
 async function call(method,path,body){
