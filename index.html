@@ -121,9 +121,8 @@ nav.dnav{display:flex;gap:3px;flex:1}
 
 /* ── Symptoms ───────────────────────────────────────────────── */
 .sym-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:8px 0 14px}
-.sym-check{display:flex;align-items:center;gap:8px;padding:10px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;font-size:.83rem;user-select:none;min-height:44px}
+.sym-check{display:flex;align-items:center;gap:8px;padding:10px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;font-size:.83rem;user-select:none;min-height:44px;-webkit-tap-highlight-color:transparent}
 .sym-check.on{border-color:var(--warn);background:rgba(240,136,62,.1);color:var(--warn)}
-.sym-check input{display:none}
 
 /* ── Calendar ───────────────────────────────────────────────── */
 .cal-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px}
@@ -344,18 +343,22 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
 
       <!-- Notes & Symptoms -->
       <div class="card">
-        <h3>📝 Today's Notes & Symptoms</h3>
-        <div style="font-size:.7rem;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.06em;font-weight:500">Symptoms today</div>
+        <h3>📝 Notes & Symptoms</h3>
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.06em;font-weight:500">Symptoms</div>
         <div class="sym-grid" id="dsyms">
-          <label class="sym-check" data-s="wheeze"><input type="checkbox"/>😮‍💨 Wheeze</label>
-          <label class="sym-check" data-s="cough"><input type="checkbox"/>🤧 Cough</label>
-          <label class="sym-check" data-s="tight"><input type="checkbox"/>🫁 Chest tightness</label>
-          <label class="sym-check" data-s="breathless"><input type="checkbox"/>💨 Breathlessness</label>
-          <label class="sym-check" data-s="night"><input type="checkbox"/>🌙 Night symptoms</label>
-          <label class="sym-check" data-s="exercise"><input type="checkbox"/>🏃 Exercise triggered</label>
+          <div class="sym-check" data-s="wheeze">😮‍💨 Wheeze</div>
+          <div class="sym-check" data-s="cough">🤧 Cough</div>
+          <div class="sym-check" data-s="tight">🫁 Chest tightness</div>
+          <div class="sym-check" data-s="breathless">💨 Breathlessness</div>
+          <div class="sym-check" data-s="night">🌙 Night symptoms</div>
+          <div class="sym-check" data-s="exercise">🏃 Exercise triggered</div>
         </div>
-        <div class="fg" style="margin-bottom:13px"><label>Daily note</label><textarea id="daily-note" rows="3" placeholder="How are you feeling? Any triggers, changes, notable events…"></textarea></div>
-        <button class="btn-add g" onclick="saveNote()">Save Today's Entry</button>
+        <div class="frow" style="margin-bottom:0">
+          <div class="fg" style="max-width:110px"><label>Time</label><input type="time" id="note-time"/></div>
+          <div class="fg"><label>Note</label><textarea id="daily-note" rows="2" placeholder="How are you feeling? Any triggers, changes…"></textarea></div>
+        </div>
+        <button class="btn-add g" style="margin-top:10px;width:100%" onclick="saveNote()">+ Add Note</button>
+        <div id="notes-list" style="margin-top:13px"></div>
       </div>
     </div>
 
@@ -490,12 +493,12 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div class="mdate" id="m-date"></div>
     <div class="ms"><h4>Symptoms</h4>
       <div class="sym-grid" id="msyms">
-        <label class="sym-check" data-s="wheeze"><input type="checkbox"/>😮‍💨 Wheeze</label>
-        <label class="sym-check" data-s="cough"><input type="checkbox"/>🤧 Cough</label>
-        <label class="sym-check" data-s="tight"><input type="checkbox"/>🫁 Tightness</label>
-        <label class="sym-check" data-s="breathless"><input type="checkbox"/>💨 Breathless</label>
-        <label class="sym-check" data-s="night"><input type="checkbox"/>🌙 Night symptoms</label>
-        <label class="sym-check" data-s="exercise"><input type="checkbox"/>🏃 Exercise triggered</label>
+        <div class="sym-check" data-s="wheeze">😮‍💨 Wheeze</div>
+        <div class="sym-check" data-s="cough">🤧 Cough</div>
+        <div class="sym-check" data-s="tight">🫁 Tightness</div>
+        <div class="sym-check" data-s="breathless">💨 Breathless</div>
+        <div class="sym-check" data-s="night">🌙 Night symptoms</div>
+        <div class="sym-check" data-s="exercise">🏃 Exercise triggered</div>
       </div>
     </div>
     <div class="ms"><h4>Daily Note</h4><div class="fg"><textarea id="m-note" rows="3" placeholder="How were you feeling?"></textarea></div></div>
@@ -599,7 +602,7 @@ async function showApp(){
   document.getElementById('mhdate').textContent=ds;
   const n=new Date(); calY=n.getFullYear(); calM=n.getMonth();
   const t=nowTime();
-  ['pf-time','blue-time','pink-time'].forEach(id=>document.getElementById(id).value=t);
+  ['pf-time','blue-time','pink-time','note-time'].forEach(id=>document.getElementById(id).value=t);
   initSym('dsyms');
   // Ensure all DB tables exist (creates pink_inhaler_use if missing)
   try { await call('GET','/api/init'); } catch(e) {}
@@ -621,7 +624,10 @@ function showTab(name,btn){
 // ── Symptoms ────────────────────────────────────────────────────
 function initSym(cid){
   document.querySelectorAll(`#${cid} .sym-check`).forEach(el=>{
-    el.addEventListener('click',function(){this.classList.toggle('on');});
+    el.addEventListener('click',function(e){
+      e.preventDefault();
+      this.classList.toggle('on');
+    });
   });
 }
 function getSyms(cid){ return Array.from(document.querySelectorAll(`#${cid} .sym-check.on`)).map(e=>e.dataset.s); }
@@ -693,10 +699,52 @@ function renderTodayPink(e){
 
 async function loadNote(){
   try {
+    // Load today's timed notes
+    const notes=await call('GET',`/api/timednotes?from=${today()}&to=${today()}`);
+    renderNotesList(Array.isArray(notes)?notes:[]);
+    // Also load legacy daily_notes for symptoms pre-population (last saved state)
     const d=await call('GET',`/api/notes/${today()}`);
-    if(d&&d.note) document.getElementById('daily-note').value=d.note;
     if(d&&d.symptoms) setSyms('dsyms',JSON.parse(d.symptoms));
   } catch(e) {}
+}
+
+function renderNotesList(notes){
+  const el=document.getElementById('notes-list');
+  if(!notes.length){el.innerHTML='<div class="empty">No notes yet today</div>';return;}
+  el.innerHTML=notes.map(n=>{
+    const syms=n.symptoms?JSON.parse(n.symptoms):[];
+    return `<div class="ei" style="align-items:flex-start;flex-wrap:wrap;gap:6px">
+      <div class="etime" style="flex-shrink:0">${n.time}</div>
+      <div style="flex:1;min-width:0">
+        ${syms.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">${syms.map(s=>`<span style="font-size:.72rem;padding:2px 7px;border-radius:6px;background:rgba(240,136,62,.18);color:var(--warn)">${s}</span>`).join('')}</div>`:''}
+        ${n.note?`<div class="ecmt" style="white-space:normal">${n.note}</div>`:''}
+      </div>
+      <button class="btn-sm" onclick="delNote(${n.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function saveNote(){
+  const time=document.getElementById('note-time').value||nowTime();
+  const note=document.getElementById('daily-note').value;
+  const syms=getSyms('dsyms');
+  if(!note&&!syms.length){alert('Add a note or select at least one symptom');return;}
+  await call('POST','/api/timednotes',{date:today(),time,note,symptoms:syms});
+  // Also persist symptoms to legacy notes so calendar still shows them
+  await call('POST','/api/notes',{date:today(),note,symptoms:syms});
+  document.getElementById('daily-note').value='';
+  setSyms('dsyms',[]);
+  document.getElementById('note-time').value=nowTime();
+  flash('Note saved ✓');
+  const notes=await call('GET',`/api/timednotes?from=${today()}&to=${today()}`);
+  renderNotesList(Array.isArray(notes)?notes:[]);
+}
+
+async function delNote(id){
+  await call('DELETE',`/api/timednotes?id=${id}`);
+  flash('Removed');
+  const notes=await call('GET',`/api/timednotes?from=${today()}&to=${today()}`);
+  renderNotesList(Array.isArray(notes)?notes:[]);
 }
 
 // ── Log actions ─────────────────────────────────────────────────
@@ -718,10 +766,6 @@ async function logPink(){
   await call('POST','/api/pink',{date:today(),time:document.getElementById('pink-time').value||nowTime(),puffs,comment:document.getElementById('pink-comment').value});
   document.getElementById('pink-comment').value='';
   flash('Pink inhaler logged ✓'); await loadDash();
-}
-async function saveNote(){
-  await call('POST','/api/notes',{date:today(),note:document.getElementById('daily-note').value,symptoms:getSyms('dsyms')});
-  flash('Entry saved ✓');
 }
 async function delPF(id)  { await call('DELETE',`/api/peakflow?id=${id}`); flash('Removed'); await loadDash(); }
 async function delBlue(id){ await call('DELETE',`/api/inhaler?id=${id}`);  flash('Removed'); await loadDash(); }
