@@ -1363,45 +1363,64 @@ function drawGraph(){
   canvas.onmouseleave=()=>{tt.style.display='none';};
 }
 
-// ── Scatter graph: all individual PF readings + estimated PF line ──
+// ── Scatter graph: every PF reading + inhaler markers + estimated PF ──
 function drawScatterGraph(){
   const canvas=document.getElementById('graph-scatter');
   if(!canvas) return;
   const tt=document.getElementById('tt');
   const dpr=window.devicePixelRatio||1;
-  const W=canvas.parentElement.clientWidth-36, H=280;
+  const W=canvas.parentElement.clientWidth-36, H=300;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   canvas.width=W*dpr; canvas.height=H*dpr;
   const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
-  const P={t:18,r:14,b:38,l:50};
+
+  // Use padding that leaves space for inhaler row at bottom
+  const P={t:18,r:14,b:58,l:50}; // bottom 58px: 20 for x labels + 38 for inhaler strip
   const CW=W-P.l-P.r, CH=H-P.t-P.b;
   ctx.clearRect(0,0,W,H);
 
-  const raw=gData.pfRaw||[];
-  const blue=gData.blue||[];
+  const raw=gData.pfRaw||[];         // individual PF readings: {date, time, reading, comment}
+  const blueRaw=gData.blueRaw||[];   // individual blue inhaler events: {date, time, puffs, reason}
+  const pinkRaw=gData.pinkRaw||[];   // individual pink inhaler events: {date, time, puffs}
+  const monoRaw=gData.mono||[];      // individual mono events: {date, time}
 
-  if(!raw.length && !blue.length){
+  // Build a unified date list from all sources
+  const allDateSet=new Set([
+    ...raw.map(r=>r.date),
+    ...blueRaw.map(r=>r.date),
+    ...pinkRaw.map(r=>r.date),
+    ...monoRaw.map(r=>r.date),
+  ]);
+  const allD=[...allDateSet].sort();
+
+  if(!allD.length){
     ctx.fillStyle='#7d8590';ctx.font='13px DM Sans,sans-serif';ctx.textAlign='center';
     ctx.fillText('No data yet for this period',W/2,H/2);return;
   }
 
-  // Build full date range from all data
-  const allDateSet=new Set([...raw.map(r=>r.date),...blue.map(r=>r.date)]);
-  const allD=[...allDateSet].sort();
-  if(!allD.length) return;
+  // --- Convert date+time to a continuous x position ---
+  // Each day occupies an equal slice. Within the day, time 00:00–23:59 maps to that slice.
+  const nDays=allD.length;
+  // x position: (dayIndex + fraction_of_day) / nDays  *  CW  +  P.l
+  const dtX=(date,time)=>{
+    const di=allD.indexOf(date); if(di<0) return -999;
+    const [h,m]=(time||'12:00').split(':').map(Number);
+    const frac=(h*60+m)/1440;
+    return P.l+(di+frac)/nDays*CW;
+  };
+  // For daily markers (no time) centre in the day slice
+  const dayX=i=>P.l+(i+0.5)/nDays*CW;
 
-  const pfMax=Math.max(...raw.map(r=>r.reading),PB+50);
-  const pfMin=Math.max(0,Math.min(...(raw.length?raw.map(r=>r.reading):[AMBER_T]),AMBER_T)-50);
-
-  const xS=i=>P.l+(i/(allD.length-1||1))*CW;
+  const pfMax=Math.max(...(raw.length?raw.map(r=>r.reading):[PB]),PB+50);
+  const pfMin=Math.max(0,Math.min(...(raw.length?raw.map(r=>r.reading):[AMBER_T-50]),AMBER_T)-50);
   const pfY=v=>P.t+CH-((v-pfMin)/(pfMax-pfMin))*CH;
 
-  // Zone bands
+  // ── Zone bands ──
   [{f:GREEN_T,t:pfMax,c:'rgba(63,185,80,.07)'},{f:AMBER_T,t:GREEN_T,c:'rgba(227,179,65,.07)'},{f:pfMin,t:AMBER_T,c:'rgba(248,81,73,.07)'}].forEach(b=>{
     ctx.fillStyle=b.c; ctx.fillRect(P.l,pfY(Math.min(b.t,pfMax)),CW,pfY(Math.max(b.f,pfMin))-pfY(Math.min(b.t,pfMax)));
   });
 
-  // Grid lines
+  // ── Grid lines ──
   ctx.strokeStyle='#30363d'; ctx.lineWidth=1;
   for(let i=0;i<=5;i++){
     const v=pfMin+(pfMax-pfMin)*(i/5),y=pfY(v);
@@ -1410,38 +1429,39 @@ function drawScatterGraph(){
     ctx.fillText(Math.round(v),P.l-5,y+4);
   }
 
-  // X labels
-  const step=Math.ceil(allD.length/Math.min(allD.length,Math.floor(CW/50)));
+  // ── X labels (date) ──
+  const step=Math.ceil(nDays/Math.min(nDays,Math.floor(CW/52)));
   ctx.fillStyle='#7d8590';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='center';
-  allD.forEach((d,i)=>{if(i%step!==0&&i!==allD.length-1)return;ctx.fillText(d.slice(5),xS(i),H-P.b+13);});
+  allD.forEach((d,i)=>{
+    if(i%step!==0&&i!==nDays-1)return;
+    ctx.fillText(d.slice(5),dayX(i),P.t+CH+14);
+  });
 
-  // PB line
+  // ── PB line ──
   const pby=pfY(PB);
   ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(255,255,255,.14)';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(P.l,pby);ctx.lineTo(P.l+CW,pby);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='right';
   ctx.fillText('PB '+PB,P.l-4,pby-2);
 
-  // Build per-day PF data (best reading per day for estimation baseline)
+  // ── Per-day PF lookup (for regression) ──
   const pfByDate={};
-  raw.forEach(r=>{if(!pfByDate[r.date]||r.reading>pfByDate[r.date].best){pfByDate[r.date]={best:r.reading,readings:[]};} pfByDate[r.date].readings.push(r.reading);});
-  // Recollect readings properly
-  const pfByDate2={};
-  raw.forEach(r=>{if(!pfByDate2[r.date])pfByDate2[r.date]=[];pfByDate2[r.date].push(r.reading);});
+  raw.forEach(r=>{if(!pfByDate[r.date])pfByDate[r.date]=[];pfByDate[r.date].push(r.reading);});
 
-  // Per-day blue puffs
+  // Per-blue-event lookup: we need per-event puffs not just daily total
+  // We'll estimate per reading, not per day — better granularity
+
+  // ── Regression: puffs at a single event → expected avg PF for that day ──
+  // Pair each day's total blue puffs with that day's average PF
   const blueByDate={};
-  blue.forEach(r=>{blueByDate[r.date]=(blueByDate[r.date]||0)+r.puffs;});
+  blueRaw.forEach(r=>{blueByDate[r.date]=(blueByDate[r.date]||0)+r.puffs;});
 
-  // Estimate PF from blue puffs on days with NO PF reading.
-  // Strategy: compute regression between blue puffs and avg PF on days that have both.
-  // Fall back to a simpler model: each extra puff suggests ~-15 L/min below personal best.
-  const paired=allD.filter(d=>pfByDate2[d]&&blueByDate[d]!=null).map(d=>({
-    pf:pfByDate2[d].reduce((s,v)=>s+v,0)/pfByDate2[d].length,
-    blue:blueByDate[d]||0,
+  const paired=allD.filter(d=>pfByDate[d]&&blueByDate[d]!=null).map(d=>({
+    pf:pfByDate[d].reduce((s,v)=>s+v,0)/pfByDate[d].length,
+    blue:blueByDate[d],
   }));
 
-  let slope=0, intercept=PB;
+  let slope=-15, intercept=PB; // sensible default
   if(paired.length>=3){
     const n=paired.length;
     const mx=paired.reduce((s,p)=>s+p.blue,0)/n;
@@ -1449,104 +1469,142 @@ function drawScatterGraph(){
     const num=paired.reduce((s,p)=>s+(p.blue-mx)*(p.pf-my),0);
     const den=paired.reduce((s,p)=>s+(p.blue-mx)**2,0);
     if(Math.abs(den)>0.001){slope=num/den;intercept=my-slope*mx;}
-    else{slope=-15;intercept=PB;}
-  } else {
-    // Default: assume -15 L/min per puff from PB
-    slope=-15; intercept=PB;
   }
-  const estimatePF=blue=>Math.max(pfMin+10,Math.min(pfMax-10,intercept+slope*blue));
+  const clampPF=v=>Math.max(pfMin+5,Math.min(pfMax-5,v));
+  const estimatePF=puffs=>clampPF(intercept+slope*puffs);
 
-  // Build estimated line: only for dates WITH blue use but NO PF reading
-  const estPoints=allD.map((d,i)=>{
-    if(pfByDate2[d]) return null; // has actual readings
-    if(blueByDate[d]==null) return null;
-    return {i,d,v:estimatePF(blueByDate[d])};
-  }).filter(Boolean);
-
-  // Draw estimated PF dashed line
-  if(estPoints.length>=1){
-    // Draw individual estimated dots with connecting lines where consecutive
-    ctx.setLineDash([4,4]);
-    ctx.strokeStyle='rgba(88,166,255,.5)';
-    ctx.lineWidth=1.5;
-    // Connect consecutive estimated points
-    let seg=[];
-    for(let k=0;k<estPoints.length;k++){
-      if(k===0){seg=[estPoints[k]];continue;}
-      // Check if consecutive index (adjacent day in allD)
-      if(estPoints[k].i===estPoints[k-1].i+1){seg.push(estPoints[k]);}
-      else{
-        if(seg.length>1){ctx.beginPath();seg.forEach((p,j)=>{const x=xS(p.i),y=pfY(p.v);j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
-        seg=[estPoints[k]];
-      }
+  // ── Estimated dots: one per blue inhaler event where there's NO PF reading within ±30min ──
+  const estDots=[];
+  blueRaw.forEach(ev=>{
+    // Check if there's a real PF reading within 30 min of this event
+    const nearby=(pfByDate[ev.date]||[]).length > 0; // simplification: if any PF that day, don't estimate (they exist on the graph already)
+    // More precise: check for a reading within 30min
+    const [eh,em]=(ev.time||'00:00').split(':').map(Number);
+    const evMins=eh*60+em;
+    const hasPFNear=raw.some(r=>r.date===ev.date&&Math.abs((parseInt(r.time)*60+parseInt(r.time.split(':')[1]))-evMins)<=30);
+    if(!hasPFNear){
+      // Use day's total blue puffs for the regression estimate
+      const dayTotal=blueByDate[ev.date]||ev.puffs;
+      estDots.push({date:ev.date,time:ev.time,puffs:ev.puffs,v:estimatePF(dayTotal)});
     }
-    if(seg.length>1){ctx.beginPath();seg.forEach((p,j)=>{const x=xS(p.i),y=pfY(p.v);j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
-    ctx.setLineDash([]);
-    // Draw estimated dots
-    estPoints.forEach(p=>{
-      const x=xS(p.i),y=pfY(p.v);
-      ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
-      ctx.fillStyle='rgba(88,166,255,.35)';ctx.fill();
-      ctx.strokeStyle='rgba(88,166,255,.7)';ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  // ── Draw estimated dots and connecting line ──
+  if(estDots.length>0){
+    // Connect estimated dots by date order
+    const sorted=estDots.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.time.localeCompare(b.time));
+    if(sorted.length>1){
+      ctx.setLineDash([3,4]);
+      ctx.strokeStyle='rgba(88,166,255,.35)';ctx.lineWidth=1.5;ctx.lineJoin='round';
+      ctx.beginPath();
+      sorted.forEach((p,j)=>{const x=dtX(p.date,p.time),y=pfY(p.v);j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+      ctx.stroke();ctx.setLineDash([]);
+    }
+    sorted.forEach(p=>{
+      const x=dtX(p.date,p.time),y=pfY(p.v);
+      ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
+      ctx.fillStyle='rgba(88,166,255,.25)';ctx.fill();
+      ctx.strokeStyle='rgba(88,166,255,.8)';ctx.lineWidth=1.5;ctx.stroke();
+      // Small diamond in centre
+      ctx.fillStyle='rgba(88,166,255,.7)';
+      ctx.beginPath();ctx.moveTo(x,y-3);ctx.lineTo(x+3,y);ctx.lineTo(x,y+3);ctx.lineTo(x-3,y);ctx.closePath();ctx.fill();
     });
   }
 
-  // Scatter plot: individual actual PF readings
-  // First draw connecting line between daily max readings for trend visibility
-  const sortedDays=Object.keys(pfByDate2).sort();
-  if(sortedDays.length>1){
-    const avgLine=sortedDays.map(d=>{const i=allD.indexOf(d);const vals=pfByDate2[d];const a=vals.reduce((s,v)=>s+v,0)/vals.length;return{i,v:a};}).filter(p=>p.i>=0);
-    ctx.beginPath();avgLine.forEach((p,j)=>{const x=xS(p.i),y=pfY(p.v);j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
-    ctx.strokeStyle='rgba(63,185,80,.2)';ctx.lineWidth=6;ctx.lineJoin='round';ctx.stroke();
-    ctx.beginPath();avgLine.forEach((p,j)=>{const x=xS(p.i),y=pfY(p.v);j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
-    ctx.strokeStyle='rgba(63,185,80,.55)';ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();
+  // ── Draw connecting line through actual PF readings (avg per day, for trend) ──
+  const sortedPFDays=Object.keys(pfByDate).sort();
+  if(sortedPFDays.length>1){
+    const avgLine=sortedPFDays.map(d=>{
+      const vals=pfByDate[d];
+      return{x:dayX(allD.indexOf(d)),v:vals.reduce((s,v)=>s+v,0)/vals.length};
+    });
+    ctx.beginPath();avgLine.forEach((p,j)=>{j===0?ctx.moveTo(p.x,pfY(p.v)):ctx.lineTo(p.x,pfY(p.v));});
+    ctx.strokeStyle='rgba(63,185,80,.18)';ctx.lineWidth=7;ctx.lineJoin='round';ctx.stroke();
+    ctx.beginPath();avgLine.forEach((p,j)=>{j===0?ctx.moveTo(p.x,pfY(p.v)):ctx.lineTo(p.x,pfY(p.v));});
+    ctx.strokeStyle='rgba(63,185,80,.5)';ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();
   }
 
-  // Individual dots
+  // ── Draw actual PF dots ──
   const dotPoints=[];
   raw.forEach(r=>{
-    const i=allD.indexOf(r.date);if(i<0)return;
-    dotPoints.push({i,d:r.date,v:r.reading,time:r.time,comment:r.comment});
+    const x=dtX(r.date,r.time);
+    dotPoints.push({x,date:r.date,time:r.time,v:r.reading,comment:r.comment});
   });
   dotPoints.forEach(p=>{
-    const x=xS(p.i),y=pfY(p.v);
     const col=pfCol(p.v);
-    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
-    ctx.fillStyle=col+'99';ctx.fill();
+    ctx.beginPath();ctx.arc(p.x,pfY(p.v),5.5,0,Math.PI*2);
+    ctx.fillStyle=col+'aa';ctx.fill();
     ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
   });
 
-  // Tooltip
+  // ── Inhaler strip at bottom ──
+  // Three rows: blue (row 0), pink (row 1), mono (row 2)
+  const stripTop=P.t+CH+22; // just below x labels
+  const rowH=10, rowGap=3;
+
+  // Blue events
+  blueRaw.forEach(ev=>{
+    const x=dtX(ev.date,ev.time);
+    const row=0, y=stripTop+row*(rowH+rowGap);
+    ctx.fillStyle='rgba(88,166,255,.75)';
+    ctx.beginPath();ctx.roundRect(x-3,y,6,rowH,2);ctx.fill();
+  });
+  // Pink events
+  pinkRaw.forEach(ev=>{
+    const x=dtX(ev.date,ev.time);
+    const row=1, y=stripTop+row*(rowH+rowGap);
+    ctx.fillStyle='rgba(232,121,249,.75)';
+    ctx.beginPath();ctx.roundRect(x-3,y,6,rowH,2);ctx.fill();
+  });
+  // Mono events
+  monoRaw.forEach(ev=>{
+    const x=dtX(ev.date,ev.time);
+    const row=2, y=stripTop+row*(rowH+rowGap);
+    ctx.fillStyle='rgba(245,158,11,.75)';
+    ctx.beginPath();ctx.roundRect(x-3,y,6,rowH,2);ctx.fill();
+  });
+
+  // Strip labels
+  ctx.fillStyle='#7d8590';ctx.font='8px DM Sans,sans-serif';ctx.textAlign='right';
+  ctx.fillText('💙',P.l-3,stripTop+8);
+  ctx.fillText('🌸',P.l-3,stripTop+rowH+rowGap+8);
+  ctx.fillText('🟡',P.l-3,stripTop+(rowH+rowGap)*2+8);
+
+  // ── Tooltip ──
   canvas.onmousemove=e=>{
-    const rc=canvas.getBoundingClientRect(),mx=e.clientX-rc.left,my=e.clientY-rc.top;
+    const rc=canvas.getBoundingClientRect();
+    const mx=e.clientX-rc.left, my=e.clientY-rc.top;
+    // Check actual dots first
     let best=null,bd=Infinity;
     dotPoints.forEach(p=>{
-      const px=xS(p.i),py=pfY(p.v);
-      const dist=Math.sqrt((mx-px)**2+(my-py)**2);
+      const dist=Math.hypot(mx-p.x,my-pfY(p.v));
       if(dist<bd){bd=dist;best=p;}
     });
-    if(!best||bd>18){
-      // Check estimated points
-      let eb=null,ebd=Infinity;
-      estPoints.forEach(p=>{const px=xS(p.i),py=pfY(p.v);const d=Math.sqrt((mx-px)**2+(my-py)**2);if(d<ebd){ebd=d;eb=p;}});
-      if(!eb||ebd>18){tt.style.display='none';return;}
-      let h=`<div class="ttd">${eb.d.slice(5)} (estimated)</div>`;
-      h+=`<div class="ttr"><span>Est. PF</span><span>${Math.round(eb.v)} L/min</span></div>`;
-      h+=`<div class="ttr"><span>Blue puffs</span><span>${blueByDate[eb.d]}</span></div>`;
+    if(best&&bd<=20){
+      let h=`<div class="ttd">${best.date.slice(5)} ${best.time}</div>`;
+      h+=`<div class="ttr"><span>Peak flow</span><span style="color:${pfCol(best.v)}">${best.v} L/min</span></div>`;
+      h+=`<div class="ttr"><span>Zone</span><span>${pfZone(best.v)}</span></div>`;
+      h+=`<div class="ttr"><span>% of PB</span><span>${Math.round(best.v/PB*100)}%</span></div>`;
+      if(best.comment)h+=`<div class="ttr"><span>Note</span><span>${best.comment}</span></div>`;
       tt.innerHTML=h;tt.style.display='block';
       tt.style.left=Math.min(e.clientX+14,window.innerWidth-220)+'px';
-      tt.style.top=Math.min(e.clientY-10,window.innerHeight-140)+'px';
+      tt.style.top=Math.min(e.clientY-10,window.innerHeight-150)+'px';
       return;
     }
-    const z=pfZone(best.v);
-    let h=`<div class="ttd">${best.d.slice(5)} at ${best.time}</div>`;
-    h+=`<div class="ttr"><span>Peak flow</span><span style="color:${pfCol(best.v)}">${best.v} L/min</span></div>`;
-    h+=`<div class="ttr"><span>Zone</span><span>${z}</span></div>`;
-    h+=`<div class="ttr"><span>% of PB</span><span>${Math.round(best.v/PB*100)}%</span></div>`;
-    if(best.comment) h+=`<div class="ttr"><span>Note</span><span>${best.comment}</span></div>`;
-    tt.innerHTML=h;tt.style.display='block';
-    tt.style.left=Math.min(e.clientX+14,window.innerWidth-220)+'px';
-    tt.style.top=Math.min(e.clientY-10,window.innerHeight-140)+'px';
+    // Check estimated dots
+    let eb=null,ebd=Infinity;
+    estDots.forEach(p=>{const dist=Math.hypot(mx-dtX(p.date,p.time),my-pfY(p.v));if(dist<ebd){ebd=dist;eb=p;}});
+    if(eb&&ebd<=18){
+      let h=`<div class="ttd">${eb.date.slice(5)} ${eb.time} — estimated</div>`;
+      h+=`<div class="ttr"><span>Est. PF</span><span style="color:var(--blue)">${Math.round(eb.v)} L/min</span></div>`;
+      h+=`<div class="ttr"><span>Blue puffs</span><span>${eb.puffs} puffs (${blueByDate[eb.date]} total that day)</span></div>`;
+      h+=`<div class="ttr"><span>Based on</span><span>${paired.length} paired days</span></div>`;
+      tt.innerHTML=h;tt.style.display='block';
+      tt.style.left=Math.min(e.clientX+14,window.innerWidth-220)+'px';
+      tt.style.top=Math.min(e.clientY-10,window.innerHeight-150)+'px';
+      return;
+    }
+    tt.style.display='none';
   };
   canvas.onmouseleave=()=>{tt.style.display='none';};
 }
