@@ -17,6 +17,7 @@
   --green:#3fb950; --blue:#58a6ff; --warn:#f0883e; --danger:#f85149;
   --pink:#e879f9; --pink-lo:rgba(232,121,249,.14);
   --mono:#f59e0b; --mono-lo:rgba(245,158,11,.14);
+  --teal:#2dd4bf; --teal-lo:rgba(45,212,191,.14);
   --pf-good:#3fb950; --pf-fair:#e3b341; --pf-poor:#f85149;
   --r:14px; --r-sm:10px;
   --font-serif:'DM Serif Display',Georgia,serif;
@@ -100,11 +101,12 @@ nav.dnav{display:flex;gap:3px;flex:1}
 .btn-add.p{background:var(--pink)}
 .btn-add.o{background:var(--warn)}
 .btn-add.m{background:var(--mono)}
+.btn-add.t{background:var(--teal)}
 .btn-sm{padding:5px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.76rem;cursor:pointer;min-height:34px;min-width:34px}
 .btn-sm:hover{border-color:var(--danger);color:var(--danger)}
 
 /* ── Stats grid ─────────────────────────────────────────────── */
-.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:18px}
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:18px}
 .sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
 .sc .sl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
 .sc .sv{font-size:1.85rem;font-family:var(--font-serif);font-weight:400;line-height:1.1}
@@ -238,8 +240,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
 /* ── Responsive ─────────────────────────────────────────────── */
 @media(max-width:900px){
   .stats-grid{grid-template-columns:repeat(3,1fr)}
-  .log-grid{grid-template-columns:1fr 1fr}
-  .agrid.c4{grid-template-columns:repeat(2,1fr)}
+  .log-grid{grid-template-columns:1fr 1fr}  .agrid.c4{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:768px){
   .app-header{display:none}.mhdr{display:flex}.mnav{display:block}
@@ -252,7 +253,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
   .flash{left:14px;right:14px;text-align:center}
 }
 @media(max-width:480px){
-  .stats-grid{grid-template-columns:1fr 1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
   .sc .sv{font-size:1.6rem}
   .agrid.c4{grid-template-columns:1fr 1fr}
   .tlbl{min-width:90px;font-size:.74rem}
@@ -313,6 +314,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
         <div class="sc" id="sc-blue"><div class="sl">Blue inhaler today</div><div class="sv">—</div><div class="ss">Puffs used</div></div>
         <div class="sc" id="sc-pink"><div class="sl">Pink inhaler today</div><div class="sv">—</div><div class="ss">Preventer dose</div></div>
         <div class="sc" id="sc-mono"><div class="sl">Montelukast today</div><div class="sv">—</div><div class="ss">Tablet taken</div></div>
+        <div class="sc" id="sc-spiriva"><div class="sl">Spiriva today</div><div class="sv">—</div><div class="ss">Respimat dose</div></div>
       </div>
 
       <div class="log-grid">
@@ -358,6 +360,16 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
           </div>
           <button class="btn-add m" onclick="logMono()">+ Log Tablet</button>
           <div class="entries" id="mono-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
+        </div>
+        <!-- Spiriva Respimat -->
+        <div class="card" style="border-color:rgba(45,212,191,.3)">
+          <h3>🌀 Spiriva Respimat <span style="font-size:.68rem;color:var(--muted);font-family:var(--font-sans)">LAMA</span></h3>
+          <div class="frow">
+            <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="spiriva-time"/></div>
+            <div class="fg"><label>Note (optional)</label><input type="text" id="spiriva-comment" placeholder="e.g. morning dose"/></div>
+          </div>
+          <button class="btn-add t" onclick="logSpiriva()">+ Log Dose</button>
+          <div class="entries" id="spiriva-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
       </div>
 
@@ -577,6 +589,14 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
         <button class="btn-add m" style="margin-bottom:1px" onclick="mAddMono()">+</button>
       </div>
     </div>
+    <div class="ms"><h4>🌀 Spiriva Respimat</h4>
+      <div class="mrl" id="m-spiriva-list"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="max-width:88px"><label>Time</label><input type="time" id="m-spiriva-t"/></div>
+        <div class="fg" style="flex:1;min-width:100px"><label>Note</label><input type="text" id="m-spiriva-c" placeholder="Optional"/></div>
+        <button class="btn-add t" style="margin-bottom:1px" onclick="mAddSpiriva()">+</button>
+      </div>
+    </div>
     <button class="msave" onclick="saveModal()">Save Entry</button>
   </div>
 </div>
@@ -609,8 +629,8 @@ const API            = 'https://asthma.exposurephotographer0.workers.dev';
 // ── State ───────────────────────────────────────────────────────
 let TOKEN = '', curTab = 'dashboard';
 let calY, calM, calData = {};
-let gRange = 0, gData = {pf:[],blue:[],pink:[],mono:[],pfRaw:[]};
-let mDate = '', mPF = [], mBlue = [], mPink = [], mMono = [];
+let gRange = 0, gData = {pf:[],blue:[],pink:[],mono:[],spir:[],pfRaw:[]};
+let mDate = '', mPF = [], mBlue = [], mPink = [], mMono = [], mSpir = [];
 let aRange = 90;
 
 // ── Utils ───────────────────────────────────────────────────────
@@ -691,7 +711,7 @@ async function exportData(){
     // Fetch everything — use a wide date range
     const from='2020-01-01', to=today();
     st.innerHTML='<div class="spin"></div>Loading peak flow records…';
-    const [pf, blue, pink, notes, timedNotes, analytics, mono] = await Promise.all([
+    const [pf, blue, pink, notes, timedNotes, analytics, mono, spir] = await Promise.all([
       call('GET',`/api/peakflow?from=${from}&to=${to}`),
       call('GET',`/api/inhaler?from=${from}&to=${to}`),
       call('GET',`/api/pink?from=${from}&to=${to}`),
@@ -699,6 +719,7 @@ async function exportData(){
       call('GET',`/api/timednotes?from=${from}&to=${to}`).catch(()=>[]),
       call('GET',`/api/analytics?from=${daysAgo(90)}&to=${to}`).catch(()=>({})),
       call('GET',`/api/montelukast?from=${from}&to=${to}`).catch(()=>[]),
+      call('GET',`/api/spiriva?from=${from}&to=${to}`).catch(()=>[]),
     ]);
 
     st.innerHTML='<div class="spin"></div>Building report…';
@@ -709,6 +730,7 @@ async function exportData(){
     const notesArr= Array.isArray(notes)? notes: [];
     const timedArr= Array.isArray(timedNotes)? timedNotes: [];
     const monoArr = Array.isArray(mono) ? mono : [];
+    const spirArr = Array.isArray(spir) ? spir : [];
 
     // Summary stats
     const pfVals = pfArr.map(r=>r.reading);
@@ -750,6 +772,7 @@ async function exportData(){
     lines.push('Blue inhaler = reliever (Salbutamol/Ventolin type)');
     lines.push('Pink inhaler = preventer (daily steroid inhaler)');
     lines.push('Montelukast = leukotriene receptor antagonist tablet (daily controller)');
+    lines.push('Spiriva Respimat = tiotropium LAMA (long-acting muscarinic antagonist, daily)');
     lines.push('');
     lines.push('SUMMARY STATISTICS');
     lines.push('──────────────────');
@@ -766,6 +789,9 @@ async function exportData(){
     const monoDays=new Set(monoArr.map(r=>r.date)).size;
     const monoAdherence=spanDays>0?Math.round(monoDays/spanDays*100):0;
     lines.push(`Montelukast doses: ${monoArr.length} events, ${monoDays} days (${monoAdherence}% adherence)`);
+    const spirDays=new Set(spirArr.map(r=>r.date)).size;
+    const spirAdherence=spanDays>0?Math.round(spirDays/spanDays*100):0;
+    lines.push(`Spiriva Respimat doses: ${spirArr.length} events, ${spirDays} days (${spirAdherence}% adherence)`);
     if(Object.keys(symCount).length){
       lines.push('Symptom frequency (all time):');
       Object.entries(symCount).sort((a,b)=>b[1]-a[1]).forEach(([s,c])=>lines.push(`  ${s}: ${c} occurrences`));
@@ -813,6 +839,16 @@ async function exportData(){
       lines.push('Date       | Time  | Note');
       lines.push('-----------|-------|-----');
       monoArr.forEach(r=>lines.push(`${r.date} | ${r.time} | ${r.comment||''}`));
+      lines.push('');
+    }
+
+    // Spiriva Respimat
+    if(spirArr.length){
+      lines.push('SPIRIVA RESPIMAT LOG (all time)');
+      lines.push('────────────────────────────────');
+      lines.push('Date       | Time  | Note');
+      lines.push('-----------|-------|-----');
+      spirArr.forEach(r=>lines.push(`${r.date} | ${r.time} | ${r.comment||''}`));
       lines.push('');
     }
 
@@ -909,7 +945,7 @@ async function showApp(){
   document.getElementById('mhdate').textContent=ds;
   const n=new Date(); calY=n.getFullYear(); calM=n.getMonth();
   const t=nowTime();
-  ['pf-time','blue-time','pink-time','mono-time','note-time'].forEach(id=>document.getElementById(id).value=t);
+  ['pf-time','blue-time','pink-time','mono-time','spiriva-time','note-time'].forEach(id=>document.getElementById(id).value=t);
   initSym('dsyms');
   // Ensure all DB tables exist (creates pink_inhaler_use if missing)
   try { await call('GET','/api/init'); } catch(e) {}
@@ -944,32 +980,35 @@ function setSyms(cid,syms){ document.querySelectorAll(`#${cid} .sym-check`).forE
 async function loadDash(){
   const t=today(), w=daysAgo(6);
   const safe = p => p.catch(()=>null);
-  const [pf,blue,pink,mono,sum]=await Promise.all([
+  const [pf,blue,pink,mono,spir,sum]=await Promise.all([
     safe(call('GET',`/api/peakflow?from=${t}&to=${t}`)),
     safe(call('GET',`/api/inhaler?from=${t}&to=${t}`)),
     safe(call('GET',`/api/pink?from=${t}&to=${t}`)),
     safe(call('GET',`/api/montelukast?from=${t}&to=${t}`)),
+    safe(call('GET',`/api/spiriva?from=${t}&to=${t}`)),
     safe(call('GET',`/api/summary?from=${w}&to=${t}`)),
   ]);
   renderTodayPF(Array.isArray(pf)?pf:[]);
   renderTodayBlue(Array.isArray(blue)?blue:[]);
   renderTodayPink(Array.isArray(pink)?pink:[]);
   renderTodayMono(Array.isArray(mono)?mono:[]);
+  renderTodaySpir(Array.isArray(spir)?spir:[]);
   renderStats(
     Array.isArray(pf)?pf:[],
     Array.isArray(blue)?blue:[],
     Array.isArray(pink)?pink:[],
     Array.isArray(mono)?mono:[],
+    Array.isArray(spir)?spir:[],
     (sum&&!sum.error)?sum:{peakFlow:[],inhalerUse:[],pinkInhaler:[]}
   );
 }
 
-function renderStats(pf,blue,pink,mono,sum){
+function renderStats(pf,blue,pink,mono,spir,sum){
   const best=pf.length?Math.max(...pf.map(r=>r.reading)):null;
   const bp=blue.reduce((s,r)=>s+r.puffs,0);
   const pfEl=document.getElementById('sc-pf'), zEl=document.getElementById('sc-zone');
   const blEl=document.getElementById('sc-blue'), pkEl=document.getElementById('sc-pink');
-  const moEl=document.getElementById('sc-mono');
+  const moEl=document.getElementById('sc-mono'), spEl=document.getElementById('sc-spiriva');
   if(best!==null){
     const z=pfZone(best), pct=Math.round(best/PB*100);
     pfEl.querySelector('.sv').textContent=best;
@@ -1000,6 +1039,16 @@ function renderStats(pf,blue,pink,mono,sum){
     moEl.querySelector('.ss').textContent='Not logged today';
     moEl.className='sc warn';
   }
+  if(spir&&spir.length){
+    const first=spir.slice().sort((a,b)=>a.time.localeCompare(b.time))[0];
+    spEl.querySelector('.sv').textContent='✓';
+    spEl.querySelector('.ss').textContent=`Taken at ${first.time}`;
+    spEl.className='sc good';
+  } else {
+    spEl.querySelector('.sv').textContent='—';
+    spEl.querySelector('.ss').textContent='Not logged today';
+    spEl.className='sc warn';
+  }
 }
 
 function renderTodayPF(e){
@@ -1021,6 +1070,11 @@ function renderTodayMono(e){
   const el=document.getElementById('mono-list');
   if(!e.length){el.innerHTML='<div class="empty">Not logged today</div>';return;}
   el.innerHTML=e.map(r=>`<div class="ei"><div class="etime">${r.time}</div><div class="eval" style="color:var(--mono)">🟡 Taken</div><div class="ecmt">${r.comment||''}</div><div><button class="btn-sm" onclick="delMono(${r.id})">✕</button></div></div>`).join('');
+}
+function renderTodaySpir(e){
+  const el=document.getElementById('spiriva-list');
+  if(!e.length){el.innerHTML='<div class="empty">Not logged today</div>';return;}
+  el.innerHTML=e.map(r=>`<div class="ei"><div class="etime">${r.time}</div><div class="eval" style="color:var(--teal)">🌀 Taken</div><div class="ecmt">${r.comment||''}</div><div><button class="btn-sm" onclick="delSpir(${r.id})">✕</button></div></div>`).join('');
 }
 
 async function loadNote(){
@@ -1098,10 +1152,16 @@ async function logMono(){
   document.getElementById('mono-comment').value='';
   flash('Montelukast logged ✓'); await loadDash();
 }
+async function logSpiriva(){
+  await call('POST','/api/spiriva',{date:today(),time:document.getElementById('spiriva-time').value||nowTime(),comment:document.getElementById('spiriva-comment').value});
+  document.getElementById('spiriva-comment').value='';
+  flash('Spiriva logged ✓'); await loadDash();
+}
 async function delPF(id)  { await call('DELETE',`/api/peakflow?id=${id}`); flash('Removed'); await loadDash(); }
 async function delBlue(id){ await call('DELETE',`/api/inhaler?id=${id}`);  flash('Removed'); await loadDash(); }
 async function delPink(id){ await call('DELETE',`/api/pink?id=${id}`);     flash('Removed'); await loadDash(); }
 async function delMono(id){ await call('DELETE',`/api/montelukast?id=${id}`); flash('Removed'); await loadDash(); }
+async function delSpir(id){ await call('DELETE',`/api/spiriva?id=${id}`);  flash('Removed'); await loadDash(); }
 
 // ── Calendar ────────────────────────────────────────────────────
 function changeMonth(d){ calM+=d; if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;} renderCal(); }
@@ -1111,11 +1171,12 @@ async function renderCal(){
   const from=`${calY}-${String(calM+1).padStart(2,'0')}-01`;
   const last=new Date(calY,calM+1,0).getDate();
   const to=`${calY}-${String(calM+1).padStart(2,'0')}-${last}`;
-  const [notes,sum,pinkRaw,monoRaw]=await Promise.all([
+  const [notes,sum,pinkRaw,monoRaw,spirRaw]=await Promise.all([
     call('GET',`/api/notes?from=${from}&to=${to}`),
     call('GET',`/api/summary?from=${from}&to=${to}`),
     call('GET',`/api/pink?from=${from}&to=${to}`),
     call('GET',`/api/montelukast?from=${from}&to=${to}`).catch(()=>[]),
+    call('GET',`/api/spiriva?from=${from}&to=${to}`).catch(()=>[]),
   ]);
   calData={};
   (notes||[]).forEach(n=>{if(!calData[n.date])calData[n.date]={};calData[n.date].note=n.note;calData[n.date].syms=n.symptoms?JSON.parse(n.symptoms):[];});
@@ -1126,6 +1187,8 @@ async function renderCal(){
   Object.keys(pByDate).forEach(d=>{if(!calData[d])calData[d]={};calData[d].pink=pByDate[d];});
   const mByDate=new Set((monoRaw||[]).map(r=>r.date));
   mByDate.forEach(d=>{if(!calData[d])calData[d]={};calData[d].mono=true;});
+  const sByDate=new Set((spirRaw||[]).map(r=>r.date));
+  sByDate.forEach(d=>{if(!calData[d])calData[d]={};calData[d].spir=true;});
 
   const grid=document.getElementById('cal-grid');
   const hdrs=Array.from(grid.children).slice(0,7);
@@ -1144,6 +1207,7 @@ async function renderCal(){
     if(data.blue&&data.blue.total_puffs) h+=`<div class="cpip"><div class="dot" style="background:var(--blue)"></div>${data.blue.total_puffs}💙</div>`;
     if(data.pink) h+=`<div class="cpip"><div class="dot" style="background:var(--pink)"></div>🌸</div>`;
     if(data.mono) h+=`<div class="cpip"><div class="dot" style="background:var(--mono)"></div>🟡</div>`;
+    if(data.spir) h+=`<div class="cpip"><div class="dot" style="background:var(--teal)"></div>🌀</div>`;
     if(data.syms&&data.syms.length) h+=`<div class="cpip sym">${data.syms.slice(0,2).join(', ')}</div>`;
     d.innerHTML=h; grid.appendChild(d);
   }
@@ -1151,27 +1215,28 @@ async function renderCal(){
 
 // ── Modal ───────────────────────────────────────────────────────
 async function openModal(ds){
-  mDate=ds; mPF=[]; mBlue=[]; mPink=[]; mMono=[];
+  mDate=ds; mPF=[]; mBlue=[]; mPink=[]; mMono=[]; mSpir=[];
   document.getElementById('m-title').textContent=new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('m-date').textContent=ds;
   document.getElementById('m-note').value='';
   setSyms('msyms',[]);
   const t=nowTime();
-  ['m-pf-t','m-blue-t','m-pink-t','m-mono-t'].forEach(id=>document.getElementById(id).value=t);
-  ['m-pf-v','m-pf-c','m-blue-r','m-pink-c','m-mono-c'].forEach(id=>document.getElementById(id).value='');
+  ['m-pf-t','m-blue-t','m-pink-t','m-mono-t','m-spiriva-t'].forEach(id=>document.getElementById(id).value=t);
+  ['m-pf-v','m-pf-c','m-blue-r','m-pink-c','m-mono-c','m-spiriva-c'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('m-blue-p').value='2'; document.getElementById('m-pink-p').value='2';
   document.getElementById('day-modal').classList.add('open');
-  const [note,pf,blue,pink,mono]=await Promise.all([
+  const [note,pf,blue,pink,mono,spir]=await Promise.all([
     call('GET',`/api/notes/${ds}`),
     call('GET',`/api/peakflow?from=${ds}&to=${ds}`),
     call('GET',`/api/inhaler?from=${ds}&to=${ds}`),
     call('GET',`/api/pink?from=${ds}&to=${ds}`),
     call('GET',`/api/montelukast?from=${ds}&to=${ds}`).catch(()=>[]),
+    call('GET',`/api/spiriva?from=${ds}&to=${ds}`).catch(()=>[]),
   ]);
   if(note.note) document.getElementById('m-note').value=note.note;
   if(note.symptoms) setSyms('msyms',JSON.parse(note.symptoms));
-  mPF=pf||[]; mBlue=blue||[]; mPink=pink||[]; mMono=mono||[];
-  renderMPF(); renderMBlue(); renderMPink(); renderMMono();
+  mPF=pf||[]; mBlue=blue||[]; mPink=pink||[]; mMono=mono||[]; mSpir=spir||[];
+  renderMPF(); renderMBlue(); renderMPink(); renderMMono(); renderMSpir();
 }
 function closeModal(){ document.getElementById('day-modal').classList.remove('open'); }
 document.getElementById('day-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
@@ -1195,6 +1260,11 @@ function renderMMono(){
   const el=document.getElementById('m-mono-list');
   if(!mMono.length){el.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:3px 0">None recorded</div>';return;}
   el.innerHTML=mMono.map(r=>`<div class="mri"><div class="mt">${r.time}</div><div class="mv" style="color:var(--mono)">🟡</div><div class="mc">${r.comment||''}</div><button class="btn-sm" onclick="mDelMono(${r.id})">✕</button></div>`).join('');
+}
+function renderMSpir(){
+  const el=document.getElementById('m-spiriva-list');
+  if(!mSpir.length){el.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:3px 0">None recorded</div>';return;}
+  el.innerHTML=mSpir.map(r=>`<div class="mri"><div class="mt">${r.time}</div><div class="mv" style="color:var(--teal)">🌀</div><div class="mc">${r.comment||''}</div><button class="btn-sm" onclick="mDelSpir(${r.id})">✕</button></div>`).join('');
 }
 
 async function mAddPF(){
@@ -1220,10 +1290,16 @@ async function mAddMono(){
   document.getElementById('m-mono-c').value='';
   mMono=await call('GET',`/api/montelukast?from=${mDate}&to=${mDate}`); renderMMono();
 }
+async function mAddSpiriva(){
+  await call('POST','/api/spiriva',{date:mDate,time:document.getElementById('m-spiriva-t').value||nowTime(),comment:document.getElementById('m-spiriva-c').value});
+  document.getElementById('m-spiriva-c').value='';
+  mSpir=await call('GET',`/api/spiriva?from=${mDate}&to=${mDate}`); renderMSpir();
+}
 async function mDelPF(id)  {await call('DELETE',`/api/peakflow?id=${id}`);mPF=mPF.filter(r=>r.id!==id);renderMPF();}
 async function mDelBlue(id){await call('DELETE',`/api/inhaler?id=${id}`); mBlue=mBlue.filter(r=>r.id!==id);renderMBlue();}
 async function mDelPink(id){await call('DELETE',`/api/pink?id=${id}`);    mPink=mPink.filter(r=>r.id!==id);renderMPink();}
 async function mDelMono(id){await call('DELETE',`/api/montelukast?id=${id}`); mMono=mMono.filter(r=>r.id!==id);renderMMono();}
+async function mDelSpir(id){await call('DELETE',`/api/spiriva?id=${id}`); mSpir=mSpir.filter(r=>r.id!==id);renderMSpir();}
 
 async function saveModal(){
   await call('POST','/api/notes',{date:mDate,note:document.getElementById('m-note').value,symptoms:getSyms('msyms')});
