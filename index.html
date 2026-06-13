@@ -88,6 +88,8 @@ nav.dnav{display:flex;gap:3px;flex:1}
 /* ── Generic card & form ────────────────────────────────────── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
 .card h3{font-family:var(--font-serif);font-size:1rem;font-weight:400;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-type-label{font-size:.68rem;color:var(--muted);font-family:var(--font-sans)}
+.card-desc-note{font-size:.78rem;color:var(--muted);background:var(--surface2);border-left:2px solid var(--border);padding:6px 10px;border-radius:0 8px 8px 0;margin-bottom:12px;line-height:1.5}
 .frow{display:flex;gap:10px;margin-bottom:11px;flex-wrap:wrap}
 .fg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:88px}
 .fg label{font-size:.71rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
@@ -226,6 +228,26 @@ nav.dnav{display:flex;gap:3px;flex:1}
 .tt .ttr{display:flex;justify-content:space-between;gap:14px;color:var(--muted);margin-bottom:2px}
 .tt .ttr span:last-child{color:var(--text);font-weight:500}
 
+/* ── Med management ─────────────────────────────────────────── */
+.med-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.med-item{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:.86rem}
+.med-item-icon{font-size:1.3rem;flex-shrink:0;width:28px;text-align:center}
+.med-item-body{flex:1;min-width:0}
+.med-item-name{font-weight:600;display:flex;align-items:center;gap:7px}
+.med-item-desc{font-size:.75rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.med-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
+.btn-edit{padding:5px 11px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:var(--font-sans);font-size:.76rem;cursor:pointer;min-height:34px;transition:all .15s}
+.btn-edit:hover{border-color:var(--blue);color:var(--blue)}
+.btn-del{padding:5px 10px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:var(--font-sans);font-size:.76rem;cursor:pointer;min-height:34px;transition:all .15s}
+.btn-del:hover{border-color:var(--danger);color:var(--danger)}
+.med-form{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;display:none}
+.med-form.open{display:block}
+.color-swatches{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
+.csw{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s;flex-shrink:0}
+.csw.on{border-color:white;transform:scale(1.18)}
+.csw:hover{transform:scale(1.1)}
+.section-divider{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:10px}
+
 /* ── Utility ────────────────────────────────────────────────── */
 .loading{display:flex;align-items:center;justify-content:center;padding:28px;color:var(--muted);gap:9px;font-size:.88rem}
 .spin{width:17px;height:17px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:sp .7s linear infinite}
@@ -289,6 +311,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div class="hdr-right">
       <span id="today-label"></span>
       <button class="btn-logout" id="setup-btn" onclick="runSetup()" title="Run once after updating the app to create any new database tables">⚙️ Setup DB</button>
+      <button class="btn-logout" onclick="openMedManager()" title="Add & configure medications">💊 Medications</button>
       <button class="btn-logout" onclick="exportData()" title="Export all data for Claude AI analysis">📤 Export for Claude</button>
       <button class="btn-logout" onclick="logout()">Sign out</button>
     </div>
@@ -299,6 +322,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div class="brand">Breath 🌬️</div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn-logout" id="setup-btn-m" onclick="runSetup()" style="font-size:.75rem;padding:5px 10px" title="Run once after updating the app">⚙️ Setup</button>
+      <button class="btn-logout" onclick="openMedManager()" style="font-size:.75rem;padding:5px 10px" title="Manage medications">💊 Meds</button>
       <button class="btn-logout" onclick="exportData()" style="font-size:.75rem;padding:5px 10px" title="Export for Claude">📤 Export</button>
       <div class="mhdate" id="mhdate"></div>
     </div>
@@ -308,7 +332,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
 
     <!-- TODAY TAB -->
     <div id="tab-dashboard" class="tab-panel active">
-      <div class="stats-grid">
+      <div class="stats-grid" id="stats-grid">
         <div class="sc" id="sc-pf"><div class="sl">Best peak flow</div><div class="sv">—</div><div class="ss">Personal best: 620</div></div>
         <div class="sc" id="sc-zone"><div class="sl">Zone</div><div class="sv">—</div><div class="ss">% of personal best</div></div>
         <div class="sc" id="sc-blue"><div class="sl">Blue inhaler today</div><div class="sv">—</div><div class="ss">Puffs used</div></div>
@@ -317,7 +341,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
         <div class="sc" id="sc-spiriva"><div class="sl">Spiriva today</div><div class="sv">—</div><div class="ss">Respimat dose</div></div>
       </div>
 
-      <div class="log-grid">
+      <div class="log-grid" id="log-grid">
         <!-- Peak flow -->
         <div class="card">
           <h3>💨 Peak Flow</h3>
@@ -330,8 +354,9 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
           <div class="entries" id="pf-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
         <!-- Blue inhaler -->
-        <div class="card">
-          <h3>💙 Blue Inhaler <span style="font-size:.68rem;color:var(--muted);font-family:var(--font-sans)">Reliever</span></h3>
+        <div class="card" id="card-blue">
+          <h3>💙 Blue Inhaler <span class="card-type-label">Reliever</span></h3>
+          <div id="card-blue-desc" class="card-desc-note" style="display:none"></div>
           <div class="frow">
             <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="blue-time"/></div>
             <div class="fg" style="max-width:90px"><label>Puffs</label><input type="number" id="blue-puffs" value="2" min="1" max="20" inputmode="numeric"/></div>
@@ -341,8 +366,9 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
           <div class="entries" id="blue-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
         <!-- Pink inhaler -->
-        <div class="card" style="border-color:rgba(232,121,249,.3)">
-          <h3>🌸 Pink Inhaler <span style="font-size:.68rem;color:var(--muted);font-family:var(--font-sans)">Preventer</span></h3>
+        <div class="card" id="card-pink" style="border-color:rgba(232,121,249,.3)">
+          <h3>🌸 Pink Inhaler <span class="card-type-label">Preventer</span></h3>
+          <div id="card-pink-desc" class="card-desc-note" style="display:none"></div>
           <div class="frow">
             <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="pink-time"/></div>
             <div class="fg" style="max-width:90px"><label>Puffs</label><input type="number" id="pink-puffs" value="2" min="1" max="10" inputmode="numeric"/></div>
@@ -352,8 +378,9 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
           <div class="entries" id="pink-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
         <!-- Montelukast -->
-        <div class="card" style="border-color:rgba(245,158,11,.3)">
-          <h3>🟡 Montelukast <span style="font-size:.68rem;color:var(--muted);font-family:var(--font-sans)">Tablet</span></h3>
+        <div class="card" id="card-mono" style="border-color:rgba(245,158,11,.3)">
+          <h3>🟡 Montelukast <span class="card-type-label">Tablet</span></h3>
+          <div id="card-mono-desc" class="card-desc-note" style="display:none"></div>
           <div class="frow">
             <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="mono-time"/></div>
             <div class="fg"><label>Note (optional)</label><input type="text" id="mono-comment" placeholder="e.g. with dinner"/></div>
@@ -362,8 +389,9 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
           <div class="entries" id="mono-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
         <!-- Spiriva Respimat -->
-        <div class="card" style="border-color:rgba(45,212,191,.3)">
-          <h3>🌀 Spiriva Respimat <span style="font-size:.68rem;color:var(--muted);font-family:var(--font-sans)">LAMA</span></h3>
+        <div class="card" id="card-spiriva" style="border-color:rgba(45,212,191,.3)">
+          <h3>🌀 Spiriva Respimat <span class="card-type-label">LAMA</span></h3>
+          <div id="card-spiriva-desc" class="card-desc-note" style="display:none"></div>
           <div class="frow">
             <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="spiriva-time"/></div>
             <div class="fg"><label>Note (optional)</label><input type="text" id="spiriva-comment" placeholder="e.g. morning dose"/></div>
@@ -371,6 +399,8 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
           <button class="btn-add t" onclick="logSpiriva()">+ Log Dose</button>
           <div class="entries" id="spiriva-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
         </div>
+        <!-- Custom medication cards injected here by JS -->
+        <div id="custom-cards"></div>
       </div>
 
       <!-- Notes & Symptoms -->
@@ -597,12 +627,83 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
         <button class="btn-add t" style="margin-bottom:1px" onclick="mAddSpiriva()">+</button>
       </div>
     </div>
+    <div id="modal-custom-sections"></div>
     <button class="msave" onclick="saveModal()">Save Entry</button>
   </div>
 </div>
 
 <div class="tt" id="tt"></div>
 <div class="flash" id="flash"></div>
+
+<!-- MEDICATION MANAGER MODAL -->
+<div class="mo" id="med-modal">
+  <div class="modal" style="max-height:92svh">
+    <div class="mhandle"></div>
+    <button class="mclose" onclick="closeMedManager()">✕</button>
+    <h2>💊 Medications</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Add a description &amp; strength to each medication so Claude understands your regimen. Add custom meds for anything not listed.</p>
+
+    <div class="section-divider">Built-in medications</div>
+    <div class="med-list" id="builtin-med-list">
+      <!-- rendered by JS -->
+    </div>
+
+    <div class="section-divider">Custom medications</div>
+    <div class="med-list" id="custom-med-list">
+      <!-- rendered by JS -->
+    </div>
+
+    <!-- New custom med form -->
+    <div id="custom-med-form" class="med-form">
+      <div style="font-size:.8rem;font-weight:600;margin-bottom:12px" id="medform-title">Add custom medication</div>
+      <div class="frow">
+        <div class="fg" style="max-width:60px">
+          <label>Icon</label>
+          <input type="text" id="mf-emoji" placeholder="💊" maxlength="2" style="text-align:center;font-size:1.4rem;padding:7px"/>
+        </div>
+        <div class="fg"><label>Name</label><input type="text" id="mf-name" placeholder="e.g. Prednisolone"/></div>
+      </div>
+      <div class="fg" style="margin-bottom:11px">
+        <label>Description &amp; strength (shown in export to Claude)</label>
+        <textarea id="mf-desc" rows="2" placeholder="e.g. Prednisolone 5mg tablet — oral corticosteroid. Taken as rescue course when peak flow drops below amber zone."></textarea>
+      </div>
+      <div class="fg" style="margin-bottom:11px">
+        <label>Colour</label>
+        <div class="color-swatches" id="mf-colors">
+          <div class="csw on" style="background:#58a6ff" data-c="#58a6ff"></div>
+          <div class="csw" style="background:#3fb950" data-c="#3fb950"></div>
+          <div class="csw" style="background:#e879f9" data-c="#e879f9"></div>
+          <div class="csw" style="background:#f0883e" data-c="#f0883e"></div>
+          <div class="csw" style="background:#f59e0b" data-c="#f59e0b"></div>
+          <div class="csw" style="background:#2dd4bf" data-c="#2dd4bf"></div>
+          <div class="csw" style="background:#f85149" data-c="#f85149"></div>
+          <div class="csw" style="background:#c084fc" data-c="#c084fc"></div>
+          <div class="csw" style="background:#fb923c" data-c="#fb923c"></div>
+          <div class="csw" style="background:#7d8590" data-c="#7d8590"></div>
+        </div>
+      </div>
+      <div class="frow" style="margin-bottom:11px">
+        <div class="fg">
+          <label>Type</label>
+          <select id="mf-type">
+            <option value="dose">Dose (no puff count)</option>
+            <option value="inhaler">Inhaler (with puff count)</option>
+          </select>
+        </div>
+        <div class="fg" style="max-width:110px" id="mf-puffs-wrap">
+          <label>Default puffs</label>
+          <input type="number" id="mf-default-puffs" value="1" min="1" max="20" inputmode="numeric"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:9px">
+        <button class="btn-add g" style="flex:1" onclick="saveMedForm()">Save</button>
+        <button class="btn-add" style="background:var(--surface3);flex:0 0 auto" onclick="cancelMedForm()">Cancel</button>
+      </div>
+      <input type="hidden" id="mf-editing-key"/>
+    </div>
+    <button class="btn-add b" style="width:100%;margin-top:4px" onclick="openNewMedForm()" id="add-med-btn">+ Add Custom Medication</button>
+  </div>
+</div>
 
 <!-- EXPORT MODAL -->
 <div class="mo" id="export-modal">
@@ -632,6 +733,17 @@ let calY, calM, calData = {};
 let gRange = 0, gData = {pf:[],blue:[],pink:[],mono:[],spir:[],pfRaw:[]};
 let mDate = '', mPF = [], mBlue = [], mPink = [], mMono = [], mSpir = [];
 let aRange = 90;
+let medConfig = [];      // loaded from D1, array of med objects
+let customLogs = {};     // today's custom med logs keyed by med_key
+let mCustomLogs = {};    // modal custom med logs keyed by med_key
+
+// Built-in med definitions (description editable via medConfig)
+const BUILTIN_MEDS = [
+  {key:'blue',  name:'Blue Inhaler',    emoji:'💙', color:'#58a6ff', type:'inhaler', has_puffs:1, default_puffs:2, _builtin:true},
+  {key:'pink',  name:'Pink Inhaler',    emoji:'🌸', color:'#e879f9', type:'inhaler', has_puffs:1, default_puffs:2, _builtin:true},
+  {key:'mono',  name:'Montelukast',     emoji:'🟡', color:'#f59e0b', type:'dose',    has_puffs:0, default_puffs:1, _builtin:true},
+  {key:'spiriva',name:'Spiriva Respimat',emoji:'🌀', color:'#2dd4bf', type:'dose',  has_puffs:0, default_puffs:1, _builtin:true},
+];
 
 // ── Utils ───────────────────────────────────────────────────────
 const today   = () => new Date().toISOString().split('T')[0];
@@ -690,6 +802,265 @@ async function runSetup(){
   }
 }
 
+// ── Med Config ──────────────────────────────────────────────────
+async function loadMedConfig(){
+  try {
+    const res = await call('GET','/api/medconfig');
+    medConfig = Array.isArray(res) ? res : [];
+  } catch(e){ medConfig = []; }
+  applyBuiltinDescriptions();
+  renderCustomCards();
+}
+
+function getMedDesc(key){
+  const mc = medConfig.find(m=>m.key===key);
+  return mc ? mc.description||'' : '';
+}
+
+function applyBuiltinDescriptions(){
+  ['blue','pink','mono','spiriva'].forEach(key=>{
+    const desc = getMedDesc(key);
+    const el = document.getElementById(`card-${key}-desc`);
+    if(el){ el.textContent=desc; el.style.display=desc?'block':'none'; }
+  });
+}
+
+function getCustomMeds(){
+  return medConfig.filter(m=>!BUILTIN_MEDS.find(b=>b.key===m.key) && m.active!==0);
+}
+
+function renderCustomCards(){
+  const container = document.getElementById('custom-cards');
+  if(!container) return;
+  const customs = getCustomMeds();
+  container.innerHTML = customs.map(m=>{
+    const hasPuffs = m.has_puffs||m.type==='inhaler';
+    const btnCls = 'btn-add'; // use inline style for dynamic color
+    return `<div class="card" style="border-color:${m.color}44" id="card-custom-${m.key}">
+      <h3>${m.emoji||'💊'} ${m.name} <span class="card-type-label">${m.type==='inhaler'?'Inhaler':'Tablet/Dose'}</span></h3>
+      ${m.description?`<div class="card-desc-note" style="border-left-color:${m.color}">${m.description}</div>`:''}
+      <div class="frow">
+        <div class="fg" style="max-width:105px"><label>Time</label><input type="time" id="cmed-time-${m.key}"/></div>
+        ${hasPuffs?`<div class="fg" style="max-width:90px"><label>Puffs</label><input type="number" id="cmed-puffs-${m.key}" value="${m.default_puffs||1}" min="1" max="20" inputmode="numeric"/></div>`:''}
+      </div>
+      <div class="fg" style="margin-bottom:11px"><label>Note (optional)</label><input type="text" id="cmed-note-${m.key}" placeholder="optional"/></div>
+      <button class="${btnCls}" style="background:${m.color};color:#0d1117" onclick="logCustom('${m.key}')">+ Log ${m.type==='inhaler'?'Dose':'Tablet'}</button>
+      <div class="entries" id="cmed-list-${m.key}"><div class="loading"><div class="spin"></div>Loading…</div></div>
+    </div>`;
+  }).join('');
+  // set time and load today's logs for each
+  const t = nowTime();
+  customs.forEach(m=>{
+    const ti = document.getElementById(`cmed-time-${m.key}`);
+    if(ti) ti.value = t;
+    loadCustomMedToday(m.key);
+  });
+}
+
+async function loadCustomMedToday(key){
+  const t=today();
+  try {
+    const res = await call('GET',`/api/customlog?from=${t}&to=${t}&key=${key}`);
+    customLogs[key] = Array.isArray(res)?res:[];
+  } catch(e){ customLogs[key]=[]; }
+  renderCustomMedList(key, customLogs[key]);
+}
+
+function renderCustomMedList(key, entries){
+  const el = document.getElementById(`cmed-list-${key}`);
+  if(!el) return;
+  const m = medConfig.find(mc=>mc.key===key)||{color:'#7d8590'};
+  if(!entries.length){ el.innerHTML='<div class="empty">Not logged today</div>'; return; }
+  el.innerHTML = entries.map(r=>`<div class="ei">
+    <div class="etime">${r.time}</div>
+    <div class="eval" style="color:${m.color}">${m.has_puffs||m.type==='inhaler'?r.puffs+' puff'+(r.puffs!==1?'s':''):'✓ Taken'}</div>
+    <div class="ecmt">${r.comment||''}</div>
+    <div><button class="btn-sm" onclick="delCustom(${r.id},'${key}')">✕</button></div>
+  </div>`).join('');
+}
+
+async function logCustom(key){
+  const t = document.getElementById(`cmed-time-${key}`)?.value || nowTime();
+  const m = medConfig.find(mc=>mc.key===key)||{};
+  const hasPuffs = m.has_puffs||m.type==='inhaler';
+  const puffs = hasPuffs ? (parseInt(document.getElementById(`cmed-puffs-${key}`)?.value)||1) : 1;
+  const comment = document.getElementById(`cmed-note-${key}`)?.value||'';
+  await call('POST','/api/customlog',{med_key:key,date:today(),time:t,puffs,comment});
+  if(document.getElementById(`cmed-note-${key}`)) document.getElementById(`cmed-note-${key}`).value='';
+  flash(`${m.name||'Med'} logged ✓`);
+  await loadCustomMedToday(key);
+  await loadDash(); // refresh stat cards
+}
+
+async function delCustom(id, key){
+  await call('DELETE',`/api/customlog?id=${id}`);
+  flash('Removed');
+  await loadCustomMedToday(key);
+  await loadDash();
+}
+
+// ── Med Manager Modal ───────────────────────────────────────────
+let mfColor = '#58a6ff';
+
+function openMedManager(){
+  document.getElementById('med-modal').classList.add('open');
+  renderMedManagerLists();
+}
+function closeMedManager(){
+  document.getElementById('med-modal').classList.remove('open');
+  cancelMedForm();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const mm=document.getElementById('med-modal');
+  if(mm) mm.addEventListener('click',function(e){if(e.target===this)closeMedManager();});
+});
+
+function renderMedManagerLists(){
+  // Built-in list
+  const bl = document.getElementById('builtin-med-list');
+  bl.innerHTML = BUILTIN_MEDS.map(m=>{
+    const desc = getMedDesc(m.key);
+    return `<div class="med-item">
+      <div class="med-item-icon">${m.emoji}</div>
+      <div class="med-item-body">
+        <div class="med-item-name"><span class="med-dot" style="background:${m.color}"></span>${m.name}</div>
+        ${desc?`<div class="med-item-desc" title="${desc}">${desc}</div>`:`<div class="med-item-desc" style="font-style:italic">No description set</div>`}
+      </div>
+      <button class="btn-edit" onclick="editBuiltinDesc('${m.key}')">Edit description</button>
+    </div>
+    <div id="builtin-edit-${m.key}" style="display:none;margin-top:-4px;margin-bottom:8px">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 14px">
+        <label style="font-size:.7rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Description &amp; strength (for Claude export)</label>
+        <textarea id="builtin-desc-${m.key}" rows="3" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-sans);font-size:.86rem;padding:9px 11px;resize:vertical;min-height:60px;outline:none" placeholder="e.g. Salbutamol 100mcg inhaler — short-acting beta-agonist reliever. Prescribed: 2 puffs as needed.">${desc}</textarea>
+        <div style="display:flex;gap:8px;margin-top:9px">
+          <button class="btn-add g" style="flex:1;padding:9px" onclick="saveBuiltinDesc('${m.key}')">Save</button>
+          <button class="btn-edit" onclick="cancelBuiltinEdit('${m.key}')">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Custom list
+  const cl = document.getElementById('custom-med-list');
+  const customs = getCustomMeds();
+  if(!customs.length){
+    cl.innerHTML='<div style="color:var(--muted);font-size:.84rem;padding:6px 2px">No custom medications yet.</div>';
+    return;
+  }
+  cl.innerHTML = customs.map(m=>`<div class="med-item">
+    <div class="med-item-icon">${m.emoji||'💊'}</div>
+    <div class="med-item-body">
+      <div class="med-item-name"><span class="med-dot" style="background:${m.color||'#7d8590'}"></span>${m.name} <span style="font-size:.72rem;color:var(--muted)">(${m.type==='inhaler'?'inhaler':'dose'})</span></div>
+      ${m.description?`<div class="med-item-desc" title="${m.description}">${m.description}</div>`:`<div class="med-item-desc" style="font-style:italic">No description</div>`}
+    </div>
+    <button class="btn-edit" onclick="editCustomMed('${m.key}')">Edit</button>
+    <button class="btn-del" onclick="deleteCustomMed('${m.key}')">✕</button>
+  </div>`).join('');
+}
+
+function editBuiltinDesc(key){
+  // close any others
+  BUILTIN_MEDS.forEach(m=>{ if(m.key!==key) cancelBuiltinEdit(m.key); });
+  document.getElementById(`builtin-edit-${key}`).style.display='block';
+}
+function cancelBuiltinEdit(key){
+  const el=document.getElementById(`builtin-edit-${key}`);
+  if(el) el.style.display='none';
+}
+async function saveBuiltinDesc(key){
+  const desc = document.getElementById(`builtin-desc-${key}`).value.trim();
+  const existing = medConfig.find(m=>m.key===key);
+  const bm = BUILTIN_MEDS.find(m=>m.key===key);
+  await call('POST','/api/medconfig',{
+    key, name:bm.name, emoji:bm.emoji, color:bm.color,
+    type:bm.type, has_puffs:bm.has_puffs?1:0,
+    default_puffs:bm.default_puffs, description:desc,
+    sort_order: existing?.sort_order ?? 0, active:1
+  });
+  await loadMedConfig();
+  cancelBuiltinEdit(key);
+  flash('Description saved ✓');
+  renderMedManagerLists();
+}
+
+function openNewMedForm(){
+  document.getElementById('mf-name').value='';
+  document.getElementById('mf-emoji').value='💊';
+  document.getElementById('mf-desc').value='';
+  document.getElementById('mf-type').value='dose';
+  document.getElementById('mf-default-puffs').value='1';
+  document.getElementById('mf-editing-key').value='';
+  document.getElementById('medform-title').textContent='Add custom medication';
+  mfColor='#58a6ff';
+  document.querySelectorAll('#mf-colors .csw').forEach(s=>{s.classList.toggle('on',s.dataset.c===mfColor);});
+  document.getElementById('mf-puffs-wrap').style.display='none';
+  document.getElementById('custom-med-form').classList.add('open');
+  document.getElementById('add-med-btn').style.display='none';
+  document.getElementById('mf-name').focus();
+}
+function cancelMedForm(){
+  document.getElementById('custom-med-form').classList.remove('open');
+  document.getElementById('add-med-btn').style.display='';
+}
+function editCustomMed(key){
+  const m = medConfig.find(mc=>mc.key===key);
+  if(!m) return;
+  document.getElementById('mf-name').value=m.name;
+  document.getElementById('mf-emoji').value=m.emoji||'💊';
+  document.getElementById('mf-desc').value=m.description||'';
+  document.getElementById('mf-type').value=m.type||'dose';
+  document.getElementById('mf-default-puffs').value=m.default_puffs||1;
+  document.getElementById('mf-editing-key').value=key;
+  document.getElementById('medform-title').textContent='Edit medication';
+  mfColor=m.color||'#58a6ff';
+  document.querySelectorAll('#mf-colors .csw').forEach(s=>{s.classList.toggle('on',s.dataset.c===mfColor);});
+  document.getElementById('mf-puffs-wrap').style.display=m.type==='inhaler'?'':'none';
+  document.getElementById('custom-med-form').classList.add('open');
+  document.getElementById('add-med-btn').style.display='none';
+}
+async function saveMedForm(){
+  const name = document.getElementById('mf-name').value.trim();
+  if(!name){ alert('Enter a medication name'); return; }
+  const editingKey = document.getElementById('mf-editing-key').value;
+  const key = editingKey || 'cmed_'+name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,20)+'_'+Date.now().toString(36);
+  const type = document.getElementById('mf-type').value;
+  const maxIdx = Math.max(0,...medConfig.map(m=>m.sort_order||0));
+  await call('POST','/api/medconfig',{
+    key, name,
+    emoji:document.getElementById('mf-emoji').value||'💊',
+    color:mfColor,
+    type, has_puffs:type==='inhaler'?1:0,
+    default_puffs:parseInt(document.getElementById('mf-default-puffs').value)||1,
+    description:document.getElementById('mf-desc').value.trim(),
+    sort_order: editingKey ? (medConfig.find(m=>m.key===editingKey)?.sort_order??99) : maxIdx+1,
+    active:1
+  });
+  await loadMedConfig();
+  cancelMedForm();
+  flash(editingKey ? 'Medication updated ✓' : 'Medication added ✓');
+  renderMedManagerLists();
+}
+async function deleteCustomMed(key){
+  if(!confirm('Remove this medication? Logged data is kept.')) return;
+  await call('DELETE',`/api/medconfig?key=${key}`);
+  await loadMedConfig();
+  renderMedManagerLists();
+  flash('Removed');
+}
+
+// Wire colour swatches
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('#mf-colors .csw').forEach(s=>{
+    s.addEventListener('click',()=>{
+      mfColor=s.dataset.c;
+      document.querySelectorAll('#mf-colors .csw').forEach(o=>o.classList.toggle('on',o===s));
+    });
+  });
+  document.getElementById('mf-type').addEventListener('change',function(){
+    document.getElementById('mf-puffs-wrap').style.display=this.value==='inhaler'?'':'none';
+  });
+});
+
 // ── Export ──────────────────────────────────────────────────────
 let exportText = '';
 
@@ -711,7 +1082,7 @@ async function exportData(){
     // Fetch everything — use a wide date range
     const from='2020-01-01', to=today();
     st.innerHTML='<div class="spin"></div>Loading peak flow records…';
-    const [pf, blue, pink, notes, timedNotes, analytics, mono, spir] = await Promise.all([
+    const [pf, blue, pink, notes, timedNotes, analytics, mono, spir, customRaw] = await Promise.all([
       call('GET',`/api/peakflow?from=${from}&to=${to}`),
       call('GET',`/api/inhaler?from=${from}&to=${to}`),
       call('GET',`/api/pink?from=${from}&to=${to}`),
@@ -720,6 +1091,7 @@ async function exportData(){
       call('GET',`/api/analytics?from=${daysAgo(90)}&to=${to}`).catch(()=>({})),
       call('GET',`/api/montelukast?from=${from}&to=${to}`).catch(()=>[]),
       call('GET',`/api/spiriva?from=${from}&to=${to}`).catch(()=>[]),
+      call('GET',`/api/customlog?from=${from}&to=${to}`).catch(()=>[]),
     ]);
 
     st.innerHTML='<div class="spin"></div>Building report…';
@@ -731,6 +1103,7 @@ async function exportData(){
     const timedArr= Array.isArray(timedNotes)? timedNotes: [];
     const monoArr = Array.isArray(mono) ? mono : [];
     const spirArr = Array.isArray(spir) ? spir : [];
+    const customRawArr = Array.isArray(customRaw) ? customRaw : [];
 
     // Summary stats
     const pfVals = pfArr.map(r=>r.reading);
@@ -769,10 +1142,24 @@ async function exportData(){
     lines.push(`Green zone (≥80% PB): ≥${GREEN_T} L/min`);
     lines.push(`Amber zone (50–79%): ${Math.round(AMBER_T)}–${GREEN_T-1} L/min`);
     lines.push(`Red zone (<50%): <${Math.round(AMBER_T)} L/min`);
-    lines.push('Blue inhaler = reliever (Salbutamol/Ventolin type)');
-    lines.push('Pink inhaler = preventer (daily steroid inhaler)');
-    lines.push('Montelukast = leukotriene receptor antagonist tablet (daily controller)');
-    lines.push('Spiriva Respimat = tiotropium LAMA (long-acting muscarinic antagonist, daily)');
+    lines.push('');
+    lines.push('MEDICATION REGIMEN');
+    lines.push('──────────────────');
+    // Built-in meds with descriptions
+    const builtinExport = [
+      {key:'blue',  label:'Blue inhaler (reliever)',    fallback:'Short-acting beta-agonist reliever inhaler'},
+      {key:'pink',  label:'Pink inhaler (preventer)',   fallback:'Daily inhaled corticosteroid preventer'},
+      {key:'mono',  label:'Montelukast',                fallback:'Leukotriene receptor antagonist tablet (daily controller)'},
+      {key:'spiriva',label:'Spiriva Respimat',          fallback:'Tiotropium LAMA — long-acting muscarinic antagonist (daily)'},
+    ];
+    builtinExport.forEach(({key,label,fallback})=>{
+      const desc = getMedDesc(key);
+      lines.push(`${label}: ${desc||fallback}`);
+    });
+    // Custom meds
+    getCustomMeds().forEach(m=>{
+      lines.push(`${m.name} (${m.type==='inhaler'?'inhaler':'tablet/dose'}): ${m.description||'No description set'}`);
+    });
     lines.push('');
     lines.push('SUMMARY STATISTICS');
     lines.push('──────────────────');
@@ -792,6 +1179,14 @@ async function exportData(){
     const spirDays=new Set(spirArr.map(r=>r.date)).size;
     const spirAdherence=spanDays>0?Math.round(spirDays/spanDays*100):0;
     lines.push(`Spiriva Respimat doses: ${spirArr.length} events, ${spirDays} days (${spirAdherence}% adherence)`);
+    // Custom meds adherence
+    getCustomMeds().forEach(m=>{
+      const entries = customRawArr.filter(r=>r.med_key===m.key);
+      const days = new Set(entries.map(r=>r.date)).size;
+      const adh = spanDays>0?Math.round(days/spanDays*100):0;
+      const totalPuffs = entries.reduce((s,r)=>s+(r.puffs||0),0);
+      lines.push(`${m.name}: ${entries.length} events${m.has_puffs||m.type==='inhaler'?`, ${totalPuffs} puffs total`:''}, ${days} days (${adh}% adherence)`);
+    });
     if(Object.keys(symCount).length){
       lines.push('Symptom frequency (all time):');
       Object.entries(symCount).sort((a,b)=>b[1]-a[1]).forEach(([s,c])=>lines.push(`  ${s}: ${c} occurrences`));
@@ -851,6 +1246,19 @@ async function exportData(){
       spirArr.forEach(r=>lines.push(`${r.date} | ${r.time} | ${r.comment||''}`));
       lines.push('');
     }
+
+    // Custom medications
+    getCustomMeds().forEach(m=>{
+      const entries = customRawArr.filter(r=>r.med_key===m.key);
+      if(!entries.length) return;
+      const hasPuffs = m.has_puffs||m.type==='inhaler';
+      lines.push(`${m.name.toUpperCase()} LOG (all time)`);
+      lines.push('─'.repeat(Math.min(40,m.name.length+12)));
+      lines.push(hasPuffs?'Date       | Time  | Puffs | Note':'Date       | Time  | Note');
+      lines.push(hasPuffs?'-----------|-------|-------|-----':'-----------|-------|-----');
+      entries.forEach(r=>lines.push(hasPuffs?`${r.date} | ${r.time} | ${String(r.puffs).padStart(5)} | ${r.comment||''}`:`${r.date} | ${r.time} | ${r.comment||''}`));
+      lines.push('');
+    });
 
     // Notes (timed)
     const allNotes=[
@@ -947,8 +1355,9 @@ async function showApp(){
   const t=nowTime();
   ['pf-time','blue-time','pink-time','mono-time','spiriva-time','note-time'].forEach(id=>document.getElementById(id).value=t);
   initSym('dsyms');
-  // Ensure all DB tables exist (creates pink_inhaler_use if missing)
+  // Ensure all DB tables exist
   try { await call('GET','/api/init'); } catch(e) {}
+  await loadMedConfig();
   await Promise.all([loadDash(),loadNote()]);
 }
 
@@ -993,6 +1402,9 @@ async function loadDash(){
   renderTodayPink(Array.isArray(pink)?pink:[]);
   renderTodayMono(Array.isArray(mono)?mono:[]);
   renderTodaySpir(Array.isArray(spir)?spir:[]);
+  // Load custom med logs for today
+  const customs = getCustomMeds();
+  await Promise.all(customs.map(m=>loadCustomMedToday(m.key)));
   renderStats(
     Array.isArray(pf)?pf:[],
     Array.isArray(blue)?blue:[],
@@ -1001,6 +1413,7 @@ async function loadDash(){
     Array.isArray(spir)?spir:[],
     (sum&&!sum.error)?sum:{peakFlow:[],inhalerUse:[],pinkInhaler:[]}
   );
+  renderCustomStatCards();
 }
 
 function renderStats(pf,blue,pink,mono,spir,sum){
@@ -1049,6 +1462,28 @@ function renderStats(pf,blue,pink,mono,spir,sum){
     spEl.querySelector('.ss').textContent='Not logged today';
     spEl.className='sc warn';
   }
+}
+
+function renderCustomStatCards(){
+  const grid = document.getElementById('stats-grid');
+  if(!grid) return;
+  // Remove old custom stat cards
+  grid.querySelectorAll('.sc-custom').forEach(el=>el.remove());
+  const customs = getCustomMeds();
+  customs.forEach(m=>{
+    const sc = document.createElement('div');
+    sc.className = 'sc sc-custom';
+    const entries = customLogs[m.key]||[];
+    if(entries.length){
+      const first = entries.slice().sort((a,b)=>a.time.localeCompare(b.time))[0];
+      sc.innerHTML=`<div class="sl">${m.name}</div><div class="sv" style="color:${m.color}">✓</div><div class="ss">Taken at ${first.time}</div>`;
+      sc.classList.add('good');
+    } else {
+      sc.innerHTML=`<div class="sl">${m.name}</div><div class="sv">—</div><div class="ss">Not logged today</div>`;
+      sc.classList.add('warn');
+    }
+    grid.appendChild(sc);
+  });
 }
 
 function renderTodayPF(e){
@@ -1189,6 +1624,17 @@ async function renderCal(){
   mByDate.forEach(d=>{if(!calData[d])calData[d]={};calData[d].mono=true;});
   const sByDate=new Set((spirRaw||[]).map(r=>r.date));
   sByDate.forEach(d=>{if(!calData[d])calData[d]={};calData[d].spir=true;});
+  // Custom meds - fetch all in one call
+  try {
+    const customCalRaw = await call('GET',`/api/customlog?from=${from}&to=${to}`);
+    if(Array.isArray(customCalRaw)){
+      customCalRaw.forEach(r=>{
+        if(!calData[r.date])calData[r.date]={};
+        if(!calData[r.date].customMeds) calData[r.date].customMeds=new Set();
+        calData[r.date].customMeds.add(r.med_key);
+      });
+    }
+  } catch(e){}
 
   const grid=document.getElementById('cal-grid');
   const hdrs=Array.from(grid.children).slice(0,7);
@@ -1208,6 +1654,12 @@ async function renderCal(){
     if(data.pink) h+=`<div class="cpip"><div class="dot" style="background:var(--pink)"></div>🌸</div>`;
     if(data.mono) h+=`<div class="cpip"><div class="dot" style="background:var(--mono)"></div>🟡</div>`;
     if(data.spir) h+=`<div class="cpip"><div class="dot" style="background:var(--teal)"></div>🌀</div>`;
+    if(data.customMeds&&data.customMeds.size){
+      data.customMeds.forEach(key=>{
+        const m=medConfig.find(mc=>mc.key===key);
+        if(m) h+=`<div class="cpip"><div class="dot" style="background:${m.color}"></div>${m.emoji||'💊'}</div>`;
+      });
+    }
     if(data.syms&&data.syms.length) h+=`<div class="cpip sym">${data.syms.slice(0,2).join(', ')}</div>`;
     d.innerHTML=h; grid.appendChild(d);
   }
@@ -1215,7 +1667,7 @@ async function renderCal(){
 
 // ── Modal ───────────────────────────────────────────────────────
 async function openModal(ds){
-  mDate=ds; mPF=[]; mBlue=[]; mPink=[]; mMono=[]; mSpir=[];
+  mDate=ds; mPF=[]; mBlue=[]; mPink=[]; mMono=[]; mSpir=[]; mCustomLogs={};
   document.getElementById('m-title').textContent=new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('m-date').textContent=ds;
   document.getElementById('m-note').value='';
@@ -1224,19 +1676,28 @@ async function openModal(ds){
   ['m-pf-t','m-blue-t','m-pink-t','m-mono-t','m-spiriva-t'].forEach(id=>document.getElementById(id).value=t);
   ['m-pf-v','m-pf-c','m-blue-r','m-pink-c','m-mono-c','m-spiriva-c'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('m-blue-p').value='2'; document.getElementById('m-pink-p').value='2';
+  // Inject custom med sections into modal
+  renderModalCustomSections(ds, t);
   document.getElementById('day-modal').classList.add('open');
-  const [note,pf,blue,pink,mono,spir]=await Promise.all([
+  const [note,pf,blue,pink,mono,spir,customAll]=await Promise.all([
     call('GET',`/api/notes/${ds}`),
     call('GET',`/api/peakflow?from=${ds}&to=${ds}`),
     call('GET',`/api/inhaler?from=${ds}&to=${ds}`),
     call('GET',`/api/pink?from=${ds}&to=${ds}`),
     call('GET',`/api/montelukast?from=${ds}&to=${ds}`).catch(()=>[]),
     call('GET',`/api/spiriva?from=${ds}&to=${ds}`).catch(()=>[]),
+    call('GET',`/api/customlog?from=${ds}&to=${ds}`).catch(()=>[]),
   ]);
   if(note.note) document.getElementById('m-note').value=note.note;
   if(note.symptoms) setSyms('msyms',JSON.parse(note.symptoms));
   mPF=pf||[]; mBlue=blue||[]; mPink=pink||[]; mMono=mono||[]; mSpir=spir||[];
+  // Group custom logs by key
+  if(Array.isArray(customAll)) customAll.forEach(r=>{
+    if(!mCustomLogs[r.med_key]) mCustomLogs[r.med_key]=[];
+    mCustomLogs[r.med_key].push(r);
+  });
   renderMPF(); renderMBlue(); renderMPink(); renderMMono(); renderMSpir();
+  getCustomMeds().forEach(m=>renderModalCustomList(m.key));
 }
 function closeModal(){ document.getElementById('day-modal').classList.remove('open'); }
 document.getElementById('day-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
@@ -1300,6 +1761,56 @@ async function mDelBlue(id){await call('DELETE',`/api/inhaler?id=${id}`); mBlue=
 async function mDelPink(id){await call('DELETE',`/api/pink?id=${id}`);    mPink=mPink.filter(r=>r.id!==id);renderMPink();}
 async function mDelMono(id){await call('DELETE',`/api/montelukast?id=${id}`); mMono=mMono.filter(r=>r.id!==id);renderMMono();}
 async function mDelSpir(id){await call('DELETE',`/api/spiriva?id=${id}`); mSpir=mSpir.filter(r=>r.id!==id);renderMSpir();}
+
+function renderModalCustomSections(ds, t){
+  const container = document.getElementById('modal-custom-sections');
+  if(!container) return;
+  const customs = getCustomMeds();
+  container.innerHTML = customs.map(m=>{
+    const hasPuffs = m.has_puffs||m.type==='inhaler';
+    return `<div class="ms"><h4>${m.emoji||'💊'} ${m.name}</h4>
+      <div class="mrl" id="m-cmed-list-${m.key}"><div style="color:var(--muted);font-size:.8rem">Loading…</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="max-width:88px"><label>Time</label><input type="time" id="m-cmed-t-${m.key}" value="${t}"/></div>
+        ${hasPuffs?`<div class="fg" style="max-width:78px"><label>Puffs</label><input type="number" id="m-cmed-p-${m.key}" value="${m.default_puffs||1}" min="1" max="20" inputmode="numeric"/></div>`:''}
+        <div class="fg" style="flex:1;min-width:100px"><label>Note</label><input type="text" id="m-cmed-c-${m.key}" placeholder="Optional"/></div>
+        <button class="btn-add" style="margin-bottom:1px;background:${m.color};color:#0d1117" onclick="mAddCustom('${m.key}')">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderModalCustomList(key){
+  const el = document.getElementById(`m-cmed-list-${key}`);
+  if(!el) return;
+  const m = medConfig.find(mc=>mc.key===key)||{color:'#7d8590'};
+  const entries = mCustomLogs[key]||[];
+  if(!entries.length){ el.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:3px 0">None recorded</div>'; return; }
+  el.innerHTML = entries.map(r=>`<div class="mri">
+    <div class="mt">${r.time}</div>
+    <div class="mv" style="color:${m.color}">${m.has_puffs||m.type==='inhaler'?r.puffs+'p':'✓'}</div>
+    <div class="mc">${r.comment||''}</div>
+    <button class="btn-sm" onclick="mDelCustom(${r.id},'${key}')">✕</button>
+  </div>`).join('');
+}
+
+async function mAddCustom(key){
+  const m = medConfig.find(mc=>mc.key===key)||{};
+  const hasPuffs = m.has_puffs||m.type==='inhaler';
+  const t = document.getElementById(`m-cmed-t-${key}`)?.value||nowTime();
+  const puffs = hasPuffs ? (parseInt(document.getElementById(`m-cmed-p-${key}`)?.value)||1) : 1;
+  const comment = document.getElementById(`m-cmed-c-${key}`)?.value||'';
+  await call('POST','/api/customlog',{med_key:key,date:mDate,time:t,puffs,comment});
+  if(document.getElementById(`m-cmed-c-${key}`)) document.getElementById(`m-cmed-c-${key}`).value='';
+  const res = await call('GET',`/api/customlog?from=${mDate}&to=${mDate}&key=${key}`);
+  mCustomLogs[key] = Array.isArray(res)?res:[];
+  renderModalCustomList(key);
+}
+async function mDelCustom(id,key){
+  await call('DELETE',`/api/customlog?id=${id}`);
+  mCustomLogs[key]=(mCustomLogs[key]||[]).filter(r=>r.id!==id);
+  renderModalCustomList(key);
+}
 
 async function saveModal(){
   await call('POST','/api/notes',{date:mDate,note:document.getElementById('m-note').value,symptoms:getSyms('msyms')});
