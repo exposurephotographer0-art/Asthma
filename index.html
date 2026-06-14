@@ -327,6 +327,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div class="hdr-right">
       <span id="today-label"></span>
       <button class="btn-logout" id="setup-btn" onclick="runSetup()" title="Run once after updating the app to create any new database tables">⚙️ Setup DB</button>
+      <button class="btn-logout" id="backfill-btn" onclick="backfillWeather()" title="Import historical Bristol weather data from 18 May 2026">🌦️ Import Weather</button>
       <button class="btn-logout" onclick="openMedManager()" title="Add & configure medications">💊 Medications</button>
       <button class="btn-logout" onclick="exportData()" title="Export all data for Claude AI analysis">📤 Export for Claude</button>
       <button class="btn-logout" onclick="logout()">Sign out</button>
@@ -338,6 +339,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div class="brand">Breath 🌬️</div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn-logout" id="setup-btn-m" onclick="runSetup()" style="font-size:.75rem;padding:5px 10px" title="Run once after updating the app">⚙️ Setup</button>
+      <button class="btn-logout" id="backfill-btn-m" onclick="backfillWeather()" style="font-size:.75rem;padding:5px 10px" title="Import historical weather">🌦️ Weather</button>
       <button class="btn-logout" onclick="openMedManager()" style="font-size:.75rem;padding:5px 10px" title="Manage medications">💊 Meds</button>
       <button class="btn-logout" onclick="exportData()" style="font-size:.75rem;padding:5px 10px" title="Export for Claude">📤 Export</button>
       <div class="mhdate" id="mhdate"></div>
@@ -831,7 +833,84 @@ function logout(){
   document.getElementById('pwd-input').value='';
 }
 
-async function runSetup(){
+async function backfillWeather(){
+  const btns = ['backfill-btn','backfill-btn-m'].map(id=>document.getElementById(id)).filter(Boolean);
+  if(!confirm('This will import daily Bristol weather data from 18 May 2026 to today. Any dates already in the database will be skipped.\n\nContinue?')) return;
+
+  btns.forEach(b=>{b.textContent='⏳ Fetching…';b.disabled=true;});
+
+  const START = '2026-05-18';
+  const END   = today();
+  const LAT   = 51.4552;
+  const LON   = -2.5967;
+
+  function wmoToCondition(code){
+    if(code===0) return 'Clear sky';
+    if(code===1) return 'Mainly clear';
+    if(code===2) return 'Partly cloudy';
+    if(code===3) return 'Overcast';
+    if([45,48].includes(code)) return 'Foggy';
+    if([51,53,55].includes(code)) return 'Drizzle';
+    if([61,63,65].includes(code)) return 'Rain';
+    if([66,67].includes(code)) return 'Freezing rain';
+    if([71,73,75,77].includes(code)) return 'Snow';
+    if([80,81,82].includes(code)) return 'Rain showers';
+    if([85,86].includes(code)) return 'Snow showers';
+    if([95,96,99].includes(code)) return 'Thunderstorm';
+    return 'Unknown';
+  }
+
+  try {
+    // 1. Fetch historical weather from Open-Meteo archive (free, no key)
+    btns.forEach(b=>b.textContent='⏳ Downloading weather…');
+    const wUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}&start_date=${START}&end_date=${END}&daily=temperature_2m_mean,relative_humidity_2m_mean,wind_speed_10m_max,uv_index_max,weather_code&timezone=Europe%2FLondon`;
+    const wRes  = await fetch(wUrl);
+    const wData = await wRes.json();
+    if(!wData.daily) throw new Error('Weather API returned no data: ' + JSON.stringify(wData));
+
+    const dates = wData.time;
+    const d     = wData.daily;
+
+    // 2. Check what's already in the DB
+    btns.forEach(b=>b.textContent='⏳ Checking DB…');
+    const existRes  = await call('GET', `/api/weather?from=${START}&to=${END}`);
+    const existDates = new Set((Array.isArray(existRes)?existRes:[]).map(r=>r.date));
+
+    // 3. Insert missing days
+    let inserted=0, skipped=0, failed=0;
+    for(let i=0;i<dates.length;i++){
+      const date = dates[i];
+      if(existDates.has(date)){skipped++;continue;}
+      btns.forEach(b=>b.textContent=`⏳ Inserting ${i+1}/${dates.length}…`);
+      try {
+        const res = await call('POST','/api/weather',{
+          date, time:'09:00',
+          temperature: d.temperature_2m_mean[i]!==null ? Math.round(d.temperature_2m_mean[i]*10)/10 : null,
+          humidity:    d.relative_humidity_2m_mean[i]!==null ? Math.round(d.relative_humidity_2m_mean[i]) : null,
+          wind_speed:  d.wind_speed_10m_max[i]!==null ? Math.round(d.wind_speed_10m_max[i]*10)/10 : null,
+          uv_index:    d.uv_index_max[i]!==null ? Math.round(d.uv_index_max[i]*10)/10 : null,
+          aqi:0, pollen:'', condition: wmoToCondition(d.weather_code[i]),
+        });
+        if(res.id) inserted++;
+        else failed++;
+      } catch(e){ failed++; }
+      // Small pause to avoid hammering worker
+      await new Promise(r=>setTimeout(r,60));
+    }
+
+    btns.forEach(b=>{b.textContent='✅ Done!';b.style.borderColor='var(--green)';b.style.color='var(--green)';});
+    flash(`Weather imported ✓ — ${inserted} days added, ${skipped} already existed${failed?' ('+failed+' failed)':''}`);
+    setTimeout(()=>btns.forEach(b=>{b.textContent='🌦️ Import Weather';b.disabled=false;b.style.borderColor='';b.style.color='';}),4000);
+    await loadWeatherList();
+
+  } catch(e){
+    btns.forEach(b=>{b.textContent='❌ Failed';b.disabled=false;});
+    flash('Import failed — check console for details');
+    console.error('Backfill error:', e);
+  }
+}
+
+
   const btns=['setup-btn','setup-btn-m'].map(id=>document.getElementById(id)).filter(Boolean);
   btns.forEach(b=>{b.textContent='⏳ Setting up…';b.disabled=true;});
   try {
