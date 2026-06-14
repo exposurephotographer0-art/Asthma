@@ -248,6 +248,22 @@ nav.dnav{display:flex;gap:3px;flex:1}
 .csw:hover{transform:scale(1.1)}
 .section-divider{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:10px}
 
+/* ── Weather & Sleep cards ────────────────────────────────── */
+.weather-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:10px 0 12px}
+.wstat{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 13px;text-align:center}
+.wstat .wsl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.wstat .wsv{font-size:1.35rem;font-family:var(--font-serif);font-weight:400;color:var(--text)}
+.wstat .wsu{font-size:.65rem;color:var(--muted)}
+.sleep-status{display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
+.sleep-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sleep-dot.awake{background:var(--green)}
+.sleep-dot.asleep{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.sleep-info{flex:1}
+.sleep-label{font-weight:600;font-size:.9rem}
+.sleep-sub{font-size:.76rem;color:var(--muted)}
+.sleep-btns{display:flex;gap:8px}
+@media(max-width:480px){.weather-grid{grid-template-columns:repeat(2,1fr)}}
+
 /* ── Utility ────────────────────────────────────────────────── */
 .loading{display:flex;align-items:center;justify-content:center;padding:28px;color:var(--muted);gap:9px;font-size:.88rem}
 .spin{width:17px;height:17px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:sp .7s linear infinite}
@@ -421,6 +437,38 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
         </div>
         <button class="btn-add g" style="margin-top:10px;width:100%" onclick="saveNote()">+ Add Note</button>
         <div id="notes-list" style="margin-top:13px"></div>
+      </div>
+
+      <!-- Weather Log -->
+      <div class="card" style="border-color:rgba(88,166,255,.3)">
+        <h3>🌤️ Weather & Air Quality</h3>
+        <div id="weather-status" style="color:var(--muted);font-size:.82rem;margin-bottom:10px">Tap the button to log current conditions from your location.</div>
+        <button class="btn-add b" style="width:100%;margin-bottom:12px" onclick="logWeather()" id="weather-btn">📍 Log Current Weather</button>
+        <div id="weather-display" style="display:none">
+          <div class="weather-grid" id="weather-stats"></div>
+        </div>
+        <div class="entries" id="weather-list"></div>
+      </div>
+
+      <!-- Sleep Tracker -->
+      <div class="card" style="border-color:rgba(88,166,255,.25)">
+        <h3>😴 Sleep Tracker</h3>
+        <div class="sleep-status" id="sleep-status-card">
+          <div class="sleep-dot awake" id="sleep-dot"></div>
+          <div class="sleep-info">
+            <div class="sleep-label" id="sleep-label">Awake</div>
+            <div class="sleep-sub" id="sleep-sub">Tap "Go to Sleep" when you go to bed</div>
+          </div>
+          <div class="sleep-btns">
+            <button class="btn-add" style="background:#3b4dc8;font-size:.82rem;padding:9px 14px" onclick="goToSleep()" id="btn-sleep">🌙 Sleep</button>
+            <button class="btn-add g" style="font-size:.82rem;padding:9px 14px;display:none" onclick="wakeUp()" id="btn-wake">☀️ Wake Up</button>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:10px">
+          <label>Night symptoms note (optional)</label>
+          <input type="text" id="sleep-notes" placeholder="e.g. woke with wheeze at 3am, coughing"/>
+        </div>
+        <div class="entries" id="sleep-list"></div>
       </div>
     </div>
 
@@ -1082,7 +1130,7 @@ async function exportData(){
     // Fetch everything — use a wide date range
     const from='2020-01-01', to=today();
     st.innerHTML='<div class="spin"></div>Loading peak flow records…';
-    const [pf, blue, pink, notes, timedNotes, analytics, mono, spir, customRaw] = await Promise.all([
+    const [pf, blue, pink, notes, timedNotes, analytics, mono, spir, customRaw, weatherRaw, sleepRaw] = await Promise.all([
       call('GET',`/api/peakflow?from=${from}&to=${to}`),
       call('GET',`/api/inhaler?from=${from}&to=${to}`),
       call('GET',`/api/pink?from=${from}&to=${to}`),
@@ -1092,6 +1140,8 @@ async function exportData(){
       call('GET',`/api/montelukast?from=${from}&to=${to}`).catch(()=>[]),
       call('GET',`/api/spiriva?from=${from}&to=${to}`).catch(()=>[]),
       call('GET',`/api/customlog?from=${from}&to=${to}`).catch(()=>[]),
+      call('GET',`/api/weather?from=${from}&to=${to}`).catch(()=>[]),
+      call('GET',`/api/sleep?from=${from}&to=${to}`).catch(()=>[]),
     ]);
 
     st.innerHTML='<div class="spin"></div>Building report…';
@@ -1104,6 +1154,8 @@ async function exportData(){
     const monoArr = Array.isArray(mono) ? mono : [];
     const spirArr = Array.isArray(spir) ? spir : [];
     const customRawArr = Array.isArray(customRaw) ? customRaw : [];
+    const weatherArr = Array.isArray(weatherRaw) ? weatherRaw : [];
+    const sleepArr = Array.isArray(sleepRaw) ? sleepRaw : [];
 
     // Summary stats
     const pfVals = pfArr.map(r=>r.reading);
@@ -1290,6 +1342,32 @@ async function exportData(){
       lines.push('');
     }
 
+    // Weather log
+    if(weatherArr.length){
+      lines.push('WEATHER & AIR QUALITY LOG (all time)');
+      lines.push('──────────────────────────────────────');
+      lines.push('Date       | Time  | Temp°C | Humidity | Wind km/h | UV | AQI | Condition');
+      lines.push('-----------|-------|--------|----------|-----------|----|----|----------');
+      weatherArr.forEach(r=>lines.push(`${r.date} | ${r.time} | ${r.temperature!=null?String(r.temperature).padStart(6):'     —'} | ${r.humidity!=null?r.humidity+'%':'—'} | ${r.wind_speed!=null?r.wind_speed:' —'} | ${r.uv_index!=null?r.uv_index:'—'} | ${r.aqi||'—'} | ${r.condition||''}`));
+      lines.push('');
+    }
+
+    // Sleep log
+    if(sleepArr.length){
+      const completeSleep = sleepArr.filter(r=>r.wake_time);
+      const avgSleepMins = completeSleep.length ? Math.round(completeSleep.reduce((s,r)=>s+(r.duration_minutes||0),0)/completeSleep.length) : null;
+      lines.push('SLEEP LOG (all time)');
+      lines.push('─────────────────────');
+      if(avgSleepMins) lines.push(`Average sleep duration: ${Math.floor(avgSleepMins/60)}h ${avgSleepMins%60}m (${completeSleep.length} complete sessions)`);
+      lines.push('Date       | Sleep | Wake  | Duration | Notes');
+      lines.push('-----------|-------|-------|----------|------');
+      sleepArr.forEach(r=>{
+        const dur = r.duration_minutes ? `${Math.floor(r.duration_minutes/60)}h ${r.duration_minutes%60}m` : '—';
+        lines.push(`${r.date} | ${r.sleep_time} | ${r.wake_time||'—    '} | ${dur.padEnd(8)} | ${r.notes||''}`);
+      });
+      lines.push('');
+    }
+
     lines.push('═══════════════════════════════════════════════════════');
     lines.push('SUGGESTED PROMPT FOR CLAUDE:');
     lines.push('──────────────────────────────');
@@ -1358,7 +1436,7 @@ async function showApp(){
   // Ensure all DB tables exist
   try { await call('GET','/api/init'); } catch(e) {}
   await loadMedConfig();
-  await Promise.all([loadDash(),loadNote()]);
+  await Promise.all([loadDash(),loadNote(),loadWeatherList(),initSleepState()]);
 }
 
 // ── Tabs ────────────────────────────────────────────────────────
@@ -2418,6 +2496,201 @@ function buildInsights(bkts,adhRate,weeks,hpf,hbl,pd){
     out.push({t:'info',i:'📊',txt:`Analytics sharpen with more data. You have <strong>${pd.length}</strong> day${pd.length!==1?'s':''} of pink inhaler records — aim for 2–4 weeks for reliable patterns.`});
 
   return out;
+}
+
+// ── Weather Log ─────────────────────────────────────────────────
+let lastWeatherData = null;
+
+async function logWeather(){
+  const btn = document.getElementById('weather-btn');
+  const status = document.getElementById('weather-status');
+  btn.disabled = true;
+  btn.textContent = '📍 Getting location…';
+  status.textContent = 'Requesting GPS location…';
+
+  let lat, lon;
+  try {
+    const pos = await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:10000}));
+    lat = pos.coords.latitude;
+    lon = pos.coords.longitude;
+  } catch(e) {
+    status.textContent = '⚠️ Location access denied. Please allow location in your browser settings.';
+    btn.disabled = false; btn.textContent = '📍 Log Current Weather';
+    return;
+  }
+
+  status.textContent = 'Fetching weather data…';
+
+  try {
+    // Open-Meteo (free, no API key) + WAQI for AQI
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,uv_index,weather_code&timezone=auto`;
+    const aqiUrl = `https://api.waqi.info/feed/geo:${lat};${lon}/?token=demo`;
+
+    const [wRes, aqiRes] = await Promise.all([
+      fetch(weatherUrl).then(r=>r.json()),
+      fetch(aqiUrl).then(r=>r.json()).catch(()=>null),
+    ]);
+
+    const cur = wRes.current;
+    const weatherCodes = {0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Light drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+    const condition = weatherCodes[cur.weather_code] || 'Unknown';
+    const temp = cur.temperature_2m;
+    const humidity = cur.relative_humidity_2m;
+    const wind = cur.wind_speed_10m;
+    const uv = cur.uv_index;
+    const aqi = aqiRes?.data?.aqi || null;
+
+    lastWeatherData = { temp, humidity, wind, uv, aqi, condition };
+
+    // Show inline summary
+    const wd = document.getElementById('weather-display');
+    const ws = document.getElementById('weather-stats');
+    wd.style.display = 'block';
+    ws.innerHTML = `
+      <div class="wstat"><div class="wsl">Temp</div><div class="wsv">${temp}°</div><div class="wsu">Celsius</div></div>
+      <div class="wstat"><div class="wsl">Humidity</div><div class="wsv">${humidity}%</div><div class="wsu">relative</div></div>
+      <div class="wstat"><div class="wsl">Wind</div><div class="wsv">${wind}</div><div class="wsu">km/h</div></div>
+      <div class="wstat"><div class="wsl">UV Index</div><div class="wsv" style="color:${uv>=8?'var(--danger)':uv>=5?'var(--warn)':'var(--green)'}">${uv}</div><div class="wsu">${uv>=8?'Very High':uv>=5?'High':uv>=3?'Moderate':'Low'}</div></div>
+      ${aqi!==null?`<div class="wstat"><div class="wsl">AQI</div><div class="wsv" style="color:${aqi>150?'var(--danger)':aqi>100?'var(--warn)':aqi>50?'var(--mono)':'var(--green)'}">${aqi}</div><div class="wsu">${aqi>150?'Unhealthy':aqi>100?'Sensitive':aqi>50?'Moderate':'Good'}</div></div>`:''}
+      <div class="wstat" style="grid-column:span 2"><div class="wsl">Condition</div><div class="wsv" style="font-size:1rem">${condition}</div></div>
+    `;
+
+    // Save to DB
+    await call('POST', '/api/weather', {
+      date: today(), time: nowTime(),
+      temperature: temp, humidity, wind_speed: wind, uv_index: uv,
+      aqi: aqi || 0, pollen: '', condition,
+    });
+
+    status.textContent = `Logged at ${nowTime()} — ${condition}, ${temp}°C`;
+    flash('Weather logged ✓');
+    await loadWeatherList();
+  } catch(e) {
+    status.textContent = '❌ Could not fetch weather data. Check your connection.';
+  }
+  btn.disabled = false; btn.textContent = '📍 Log Current Weather';
+}
+
+async function loadWeatherList(){
+  const t = today();
+  try {
+    const res = await call('GET', `/api/weather?from=${t}&to=${t}`);
+    const entries = Array.isArray(res) ? res : [];
+    const el = document.getElementById('weather-list');
+    if(!entries.length){ el.innerHTML = ''; return; }
+    el.innerHTML = entries.map(r=>`<div class="ei">
+      <div class="etime">${r.time}</div>
+      <div class="eval" style="color:var(--blue)">${r.condition||'—'}</div>
+      <div class="ecmt">${r.temperature!==null?r.temperature+'°C':''} ${r.humidity?r.humidity+'%':''} ${r.aqi?'AQI '+r.aqi:''}</div>
+      <button class="btn-sm" onclick="delWeather(${r.id})">✕</button>
+    </div>`).join('');
+  } catch(e){}
+}
+
+async function delWeather(id){
+  await call('DELETE', `/api/weather?id=${id}`);
+  flash('Removed');
+  loadWeatherList();
+}
+
+// ── Sleep Tracker ────────────────────────────────────────────────
+let sleepSession = null; // {id, sleep_time, date}
+
+async function initSleepState(){
+  // Check localStorage for an active sleep session
+  const saved = localStorage.getItem('sleepSession');
+  if(saved){
+    try{ sleepSession = JSON.parse(saved); }catch{}
+  }
+  renderSleepState();
+  await loadSleepList();
+}
+
+function renderSleepState(){
+  const dot = document.getElementById('sleep-dot');
+  const label = document.getElementById('sleep-label');
+  const sub = document.getElementById('sleep-sub');
+  const btnSleep = document.getElementById('btn-sleep');
+  const btnWake = document.getElementById('btn-wake');
+  if(!dot) return;
+  if(sleepSession){
+    dot.className = 'sleep-dot asleep';
+    label.textContent = 'Asleep 💤';
+    sub.textContent = `Went to sleep at ${sleepSession.sleep_time} on ${sleepSession.date}`;
+    btnSleep.style.display = 'none';
+    btnWake.style.display = '';
+  } else {
+    dot.className = 'sleep-dot awake';
+    label.textContent = 'Awake';
+    sub.textContent = 'Tap "Sleep" when you go to bed';
+    btnSleep.style.display = '';
+    btnWake.style.display = 'none';
+  }
+}
+
+async function goToSleep(){
+  const time = nowTime();
+  const date = today();
+  try {
+    const res = await call('POST', '/api/sleep', { date, sleep_time: time });
+    sleepSession = { id: res.id, sleep_time: time, date };
+    localStorage.setItem('sleepSession', JSON.stringify(sleepSession));
+    renderSleepState();
+    flash('Sleep started 🌙 Sweet dreams!');
+  } catch(e){ flash('Could not record sleep time'); }
+}
+
+async function wakeUp(){
+  if(!sleepSession){ flash('No active sleep session'); return; }
+  const wakeTime = nowTime();
+  const wakeDate = today();
+  // Calculate duration
+  const sleepDt = new Date(`${sleepSession.date}T${sleepSession.sleep_time}`);
+  const wakeDt = new Date(`${wakeDate}T${wakeTime}`);
+  let mins = Math.round((wakeDt - sleepDt) / 60000);
+  if(mins < 0) mins += 24*60; // crossed midnight
+  const notes = document.getElementById('sleep-notes').value;
+  try {
+    await call('PUT', '/api/sleep', { id: sleepSession.id, wake_time: wakeTime, duration_minutes: mins, notes });
+    document.getElementById('sleep-notes').value = '';
+    const h = Math.floor(mins/60), m = mins%60;
+    flash(`Slept ${h}h ${m}m ☀️`);
+    sleepSession = null;
+    localStorage.removeItem('sleepSession');
+    renderSleepState();
+    await loadSleepList();
+  } catch(e){ flash('Could not record wake time'); }
+}
+
+async function loadSleepList(){
+  const t = today(), from = daysAgo(6);
+  try {
+    const res = await call('GET', `/api/sleep?from=${from}&to=${t}`);
+    const entries = Array.isArray(res) ? res : [];
+    const el = document.getElementById('sleep-list');
+    if(!entries.length){ el.innerHTML = '<div class="empty">No sleep entries yet</div>'; return; }
+    el.innerHTML = entries.slice().reverse().map(r=>{
+      const dur = r.duration_minutes ? `${Math.floor(r.duration_minutes/60)}h ${r.duration_minutes%60}m` : '—';
+      return `<div class="ei" style="align-items:flex-start;flex-wrap:wrap;gap:5px">
+        <div class="etime" style="min-width:48px">${r.date.slice(5)}</div>
+        <div class="eval" style="color:var(--blue)">🌙 ${r.sleep_time}</div>
+        <div class="ecmt">${r.wake_time ? '→ ☀️ '+r.wake_time+' ('+dur+')' : '<em style="color:var(--muted)">still asleep</em>'}</div>
+        ${r.notes?`<div style="width:100%;font-size:.76rem;color:var(--muted);padding-left:88px">${r.notes}</div>`:''}
+        <button class="btn-sm" onclick="delSleep(${r.id})">✕</button>
+      </div>`;
+    }).join('');
+  } catch(e){}
+}
+
+async function delSleep(id){
+  await call('DELETE', `/api/sleep?id=${id}`);
+  if(sleepSession && sleepSession.id === id){
+    sleepSession = null;
+    localStorage.removeItem('sleepSession');
+    renderSleepState();
+  }
+  flash('Removed');
+  loadSleepList();
 }
 
 // ── Auto-login ───────────────────────────────────────────────────
