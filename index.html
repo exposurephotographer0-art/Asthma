@@ -911,6 +911,7 @@ async function backfillWeather(){
 }
 
 
+async function runSetup(){
   const btns=['setup-btn','setup-btn-m'].map(id=>document.getElementById(id)).filter(Boolean);
   btns.forEach(b=>{b.textContent='⏳ Setting up…';b.disabled=true;});
   try {
