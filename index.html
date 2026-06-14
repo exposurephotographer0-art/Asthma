@@ -861,15 +861,32 @@ async function backfillWeather(){
   }
 
   try {
-    // 1. Fetch historical weather from Open-Meteo archive (free, no key)
+    // 1. Fetch weather using Open-Meteo forecast API with past_days (covers recent weeks reliably)
+    //    Fall back to archive API for anything older if needed
     btns.forEach(b=>b.textContent='⏳ Downloading weather…');
-    const wUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}&start_date=${START}&end_date=${END}&daily=temperature_2m_mean,relative_humidity_2m_mean,wind_speed_10m_max,uv_index_max,weather_code&timezone=Europe%2FLondon`;
+
+    // Calculate how many days back we need
+    const startMs  = new Date(START).getTime();
+    const todayMs  = new Date(END).getTime();
+    const daysBack = Math.ceil((todayMs - startMs) / 86400000) + 1;
+
+    // Open-Meteo forecast API supports up to 92 past_days
+    const pastDays = Math.min(daysBack, 92);
+    const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=temperature_2m_mean,relative_humidity_2m_mean,wind_speed_10m_max,uv_index_max,weather_code&timezone=Europe%2FLondon&past_days=${pastDays}&forecast_days=1`;
     const wRes  = await fetch(wUrl);
     const wData = await wRes.json();
-    if(!wData.daily) throw new Error('Weather API returned no data: ' + JSON.stringify(wData));
+    if(!wData.daily || !wData.daily.time) throw new Error('Weather API returned no data: ' + JSON.stringify(wData));
 
-    const dates = wData.time;
-    const d     = wData.daily;
+    // Filter to only dates from START onwards
+    const allTimes = wData.daily.time;
+    const startIdx = allTimes.findIndex(t => t >= START);
+    if(startIdx === -1) throw new Error('No data found from start date ' + START);
+
+    const dates = allTimes.slice(startIdx);
+    const d = {};
+    for(const key of Object.keys(wData.daily)){
+      if(key !== 'time') d[key] = wData.daily[key].slice(startIdx);
+    }
 
     // 2. Check what's already in the DB
     btns.forEach(b=>b.textContent='⏳ Checking DB…');
@@ -885,10 +902,10 @@ async function backfillWeather(){
       try {
         const res = await call('POST','/api/weather',{
           date, time:'09:00',
-          temperature: d.temperature_2m_mean[i]!==null ? Math.round(d.temperature_2m_mean[i]*10)/10 : null,
-          humidity:    d.relative_humidity_2m_mean[i]!==null ? Math.round(d.relative_humidity_2m_mean[i]) : null,
-          wind_speed:  d.wind_speed_10m_max[i]!==null ? Math.round(d.wind_speed_10m_max[i]*10)/10 : null,
-          uv_index:    d.uv_index_max[i]!==null ? Math.round(d.uv_index_max[i]*10)/10 : null,
+          temperature: d.temperature_2m_mean[i]!=null ? Math.round(d.temperature_2m_mean[i]*10)/10 : null,
+          humidity:    d.relative_humidity_2m_mean[i]!=null ? Math.round(d.relative_humidity_2m_mean[i]) : null,
+          wind_speed:  d.wind_speed_10m_max[i]!=null ? Math.round(d.wind_speed_10m_max[i]*10)/10 : null,
+          uv_index:    d.uv_index_max[i]!=null ? Math.round(d.uv_index_max[i]*10)/10 : null,
           aqi:0, pollen:'', condition: wmoToCondition(d.weather_code[i]),
         });
         if(res.id) inserted++;
