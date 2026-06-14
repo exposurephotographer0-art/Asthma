@@ -323,6 +323,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
       <button class="nav-btn" onclick="showTab('calendar',this)"><span class="ndot" style="background:var(--blue)"></span>Calendar</button>
       <button class="nav-btn" onclick="showTab('graphs',this)"><span class="ndot" style="background:var(--warn)"></span>Graphs</button>
       <button class="nav-btn" onclick="showTab('analytics',this)"><span class="ndot" style="background:var(--pink)"></span>Analytics</button>
+      <button class="nav-btn" onclick="showTab('weather',this)"><span class="ndot" style="background:var(--blue)"></span>Weather</button>
     </nav>
     <div class="hdr-right">
       <span id="today-label"></span>
@@ -602,6 +603,60 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
       </div>
     </div>
 
+    <!-- WEATHER TAB -->
+    <div id="tab-weather" class="tab-panel">
+      <div class="an-hdr">
+        <h2>🌤️ Weather & Air Quality</h2>
+        <div class="rsel">
+          <button onclick="setWRange(14,this)">14d</button>
+          <button class="active" onclick="setWRange(30,this)">30d</button>
+          <button onclick="setWRange(0,this)">All</button>
+        </div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="agrid c4" style="margin-bottom:12px">
+        <div class="acard"><h4>Avg Temp</h4><div class="av" id="w-avg-temp">—</div><div class="as">°C over period</div></div>
+        <div class="acard"><h4>Avg Humidity</h4><div class="av" id="w-avg-hum">—</div><div class="as">% relative</div></div>
+        <div class="acard"><h4>Avg UV Index</h4><div class="av" id="w-avg-uv">—</div><div class="as">daily max</div></div>
+        <div class="acard"><h4>Most Common</h4><div class="av" id="w-common" style="font-size:1.1rem">—</div><div class="as" id="w-common-s">condition</div></div>
+      </div>
+
+      <!-- Temperature trend chart -->
+      <div class="acard" style="margin-bottom:12px">
+        <h4>Temperature & UV Trend</h4>
+        <div class="acwrap" style="height:160px"><canvas id="c-wtemp"></canvas></div>
+        <div class="glegend" style="margin-top:8px">
+          <div class="gli"><div class="gll" style="background:var(--warn)"></div>Temperature °C</div>
+          <div class="gli"><div class="gll" style="background:var(--danger)"></div>UV Index</div>
+        </div>
+      </div>
+
+      <!-- Humidity & wind chart -->
+      <div class="acard" style="margin-bottom:12px">
+        <h4>Humidity & Wind Speed</h4>
+        <div class="acwrap" style="height:140px"><canvas id="c-whum"></canvas></div>
+        <div class="glegend" style="margin-top:8px">
+          <div class="gli"><div class="gll" style="background:var(--blue)"></div>Humidity %</div>
+          <div class="gli"><div class="gll" style="background:var(--teal)"></div>Wind km/h</div>
+        </div>
+      </div>
+
+      <!-- Condition breakdown -->
+      <div class="acard" style="margin-bottom:12px">
+        <h4>Conditions Breakdown</h4>
+        <div id="w-conditions" class="tbars" style="margin-top:10px"><div class="loading"><div class="spin"></div></div></div>
+      </div>
+
+      <!-- Day-by-day history table -->
+      <div class="acard">
+        <h4>Daily Log</h4>
+        <div id="w-history" style="margin-top:10px;overflow-x:auto">
+          <div class="loading"><div class="spin"></div>Loading…</div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Mobile bottom nav -->
@@ -611,7 +666,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
       <button class="mb" onclick="showTab('calendar',this)" data-tab="calendar"><span class="mi">📅</span><span>Calendar</span></button>
       <button class="mb" onclick="showTab('graphs',this)" data-tab="graphs"><span class="mi">📈</span><span>Graphs</span></button>
       <button class="mb" onclick="showTab('analytics',this)" data-tab="analytics"><span class="mi">🔬</span><span>Insights</span></button>
-      <button class="mb" onclick="logout()"><span class="mi">🚪</span><span>Sign out</span></button>
+      <button class="mb" onclick="showTab('weather',this)" data-tab="weather"><span class="mi">🌤️</span><span>Weather</span></button>
     </div>
   </nav>
 </div>
@@ -678,6 +733,10 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
       </div>
     </div>
     <div id="modal-custom-sections"></div>
+    <div class="ms" id="m-weather-section" style="display:none">
+      <h4>🌤️ Weather</h4>
+      <div id="m-weather-data" style="background:var(--surface2);border-radius:10px;padding:11px 13px;font-size:.84rem"></div>
+    </div>
     <button class="msave" onclick="saveModal()">Save Entry</button>
   </div>
 </div>
@@ -1546,6 +1605,7 @@ function showTab(name,btn){
   if(name==='calendar')  renderCal().catch(e=>console.warn('cal',e));
   if(name==='graphs')    renderGraph().catch(e=>console.warn('graph',e));
   if(name==='analytics') renderAnalytics().catch(e=>console.warn('analytics',e));
+  if(name==='weather')   renderWeatherTab().catch(e=>console.warn('weather',e));
 }
 
 // ── Symptoms ────────────────────────────────────────────────────
@@ -1781,12 +1841,13 @@ async function renderCal(){
   const from=`${calY}-${String(calM+1).padStart(2,'0')}-01`;
   const last=new Date(calY,calM+1,0).getDate();
   const to=`${calY}-${String(calM+1).padStart(2,'0')}-${last}`;
-  const [notes,sum,pinkRaw,monoRaw,spirRaw]=await Promise.all([
+  const [notes,sum,pinkRaw,monoRaw,spirRaw,weatherCalRaw]=await Promise.all([
     call('GET',`/api/notes?from=${from}&to=${to}`),
     call('GET',`/api/summary?from=${from}&to=${to}`),
     call('GET',`/api/pink?from=${from}&to=${to}`),
     call('GET',`/api/montelukast?from=${from}&to=${to}`).catch(()=>[]),
     call('GET',`/api/spiriva?from=${from}&to=${to}`).catch(()=>[]),
+    call('GET',`/api/weather?from=${from}&to=${to}`).catch(()=>[]),
   ]);
   calData={};
   (notes||[]).forEach(n=>{if(!calData[n.date])calData[n.date]={};calData[n.date].note=n.note;calData[n.date].syms=n.symptoms?JSON.parse(n.symptoms):[];});
@@ -1810,6 +1871,11 @@ async function renderCal(){
       });
     }
   } catch(e){}
+  // Weather per day
+  (Array.isArray(weatherCalRaw)?weatherCalRaw:[]).forEach(r=>{
+    if(!calData[r.date])calData[r.date]={};
+    calData[r.date].weather=r;
+  });
 
   const grid=document.getElementById('cal-grid');
   const hdrs=Array.from(grid.children).slice(0,7);
@@ -1836,6 +1902,11 @@ async function renderCal(){
       });
     }
     if(data.syms&&data.syms.length) h+=`<div class="cpip sym">${data.syms.slice(0,2).join(', ')}</div>`;
+    if(data.weather){
+      const w=data.weather;
+      const wIcon=conditionIcon(w.condition);
+      h+=`<div class="cpip" style="color:var(--muted);font-size:.62rem">${wIcon} ${w.temperature!=null?w.temperature+'°':''}${w.aqi>50?' 💨':''}</div>`;
+    }
     d.innerHTML=h; grid.appendChild(d);
   }
 }
@@ -1854,7 +1925,7 @@ async function openModal(ds){
   // Inject custom med sections into modal
   renderModalCustomSections(ds, t);
   document.getElementById('day-modal').classList.add('open');
-  const [note,pf,blue,pink,mono,spir,customAll]=await Promise.all([
+  const [note,pf,blue,pink,mono,spir,customAll,weatherDay]=await Promise.all([
     call('GET',`/api/notes/${ds}`),
     call('GET',`/api/peakflow?from=${ds}&to=${ds}`),
     call('GET',`/api/inhaler?from=${ds}&to=${ds}`),
@@ -1862,6 +1933,7 @@ async function openModal(ds){
     call('GET',`/api/montelukast?from=${ds}&to=${ds}`).catch(()=>[]),
     call('GET',`/api/spiriva?from=${ds}&to=${ds}`).catch(()=>[]),
     call('GET',`/api/customlog?from=${ds}&to=${ds}`).catch(()=>[]),
+    call('GET',`/api/weather?from=${ds}&to=${ds}`).catch(()=>[]),
   ]);
   if(note.note) document.getElementById('m-note').value=note.note;
   if(note.symptoms) setSyms('msyms',JSON.parse(note.symptoms));
@@ -1873,6 +1945,22 @@ async function openModal(ds){
   });
   renderMPF(); renderMBlue(); renderMPink(); renderMMono(); renderMSpir();
   getCustomMeds().forEach(m=>renderModalCustomList(m.key));
+  // Show weather for this day
+  const wSec=document.getElementById('m-weather-section');
+  const wDat=document.getElementById('m-weather-data');
+  const wEntries=Array.isArray(weatherDay)?weatherDay:[];
+  if(wEntries.length && wSec && wDat){
+    wSec.style.display='';
+    const w=wEntries[0];
+    wDat.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:10px 18px">
+      ${w.condition?`<span>${conditionIcon(w.condition)} ${w.condition}</span>`:''}
+      ${w.temperature!=null?`<span>🌡️ ${w.temperature}°C</span>`:''}
+      ${w.humidity!=null?`<span>💧 ${w.humidity}% humidity</span>`:''}
+      ${w.wind_speed!=null?`<span>💨 ${w.wind_speed} km/h wind</span>`:''}
+      ${w.uv_index!=null?`<span>☀️ UV ${w.uv_index}</span>`:''}
+      ${w.aqi?`<span>🫁 AQI ${w.aqi}</span>`:''}
+    </div>`;
+  } else if(wSec){ wSec.style.display='none'; }
 }
 function closeModal(){ document.getElementById('day-modal').classList.remove('open'); }
 document.getElementById('day-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
@@ -2788,6 +2876,180 @@ async function delSleep(id){
   }
   flash('Removed');
   loadSleepList();
+}
+
+// ── Weather Tab ──────────────────────────────────────────────────
+let wRange = 30;
+
+function setWRange(days, btn){
+  wRange = days;
+  document.querySelectorAll('#tab-weather .rsel button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderWeatherTab();
+}
+
+function conditionIcon(c){
+  if(!c) return '🌡️';
+  const cl = c.toLowerCase();
+  if(cl.includes('clear') || cl.includes('sunny')) return '☀️';
+  if(cl.includes('mainly clear')) return '🌤️';
+  if(cl.includes('partly')) return '⛅';
+  if(cl.includes('overcast')) return '☁️';
+  if(cl.includes('fog')) return '🌫️';
+  if(cl.includes('drizzle')) return '🌦️';
+  if(cl.includes('thunder')) return '⛈️';
+  if(cl.includes('snow')) return '❄️';
+  if(cl.includes('shower') || cl.includes('rain')) return '🌧️';
+  return '🌡️';
+}
+
+async function renderWeatherTab(){
+  const t = today();
+  const from = wRange === 0 ? '2000-01-01' : daysAgo(wRange - 1);
+
+  const res = await call('GET', `/api/weather?from=${from}&to=${t}`);
+  const data = Array.isArray(res) ? res : [];
+
+  if(!data.length){
+    document.getElementById('w-history').innerHTML = '<div class="empty">No weather data yet — use the 🌦️ Import Weather button to load Bristol history.</div>';
+    ['w-avg-temp','w-avg-hum','w-avg-uv','w-common'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='—'; });
+    return;
+  }
+
+  // Sort ascending
+  data.sort((a,b)=>a.date<b.date?-1:1);
+
+  // KPI cards
+  const temps  = data.map(r=>r.temperature).filter(v=>v!=null);
+  const hums   = data.map(r=>r.humidity).filter(v=>v!=null);
+  const uvs    = data.map(r=>r.uv_index).filter(v=>v!=null);
+  const avgT   = temps.length  ? (temps.reduce((s,v)=>s+v,0)/temps.length).toFixed(1) : '—';
+  const avgH   = hums.length   ? Math.round(hums.reduce((s,v)=>s+v,0)/hums.length)    : '—';
+  const avgUV  = uvs.length    ? (uvs.reduce((s,v)=>s+v,0)/uvs.length).toFixed(1)     : '—';
+
+  const condCount = {};
+  data.forEach(r=>{ if(r.condition){ condCount[r.condition]=(condCount[r.condition]||0)+1; } });
+  const topCond = Object.entries(condCount).sort((a,b)=>b[1]-a[1])[0];
+
+  document.getElementById('w-avg-temp').textContent  = avgT !== '—' ? avgT+'°' : '—';
+  document.getElementById('w-avg-hum').textContent   = avgH !== '—' ? avgH+'%' : '—';
+  document.getElementById('w-avg-uv').textContent    = avgUV;
+  document.getElementById('w-common').textContent    = topCond ? conditionIcon(topCond[0]) + ' ' + topCond[0] : '—';
+  document.getElementById('w-common-s').textContent  = topCond ? `${topCond[1]} of ${data.length} days` : 'condition';
+
+  // Temperature + UV chart
+  drawWeatherLineChart('c-wtemp', data,
+    { key:'temperature', color:'#f0883e', label:'°C' },
+    { key:'uv_index',    color:'#f85149', label:'UV', scale:0.3 }
+  );
+
+  // Humidity + Wind chart
+  drawWeatherLineChart('c-whum', data,
+    { key:'humidity',   color:'#58a6ff', label:'%' },
+    { key:'wind_speed', color:'#2dd4bf', label:'km/h', scale:0.5 }
+  );
+
+  // Conditions breakdown bars
+  const condEl = document.getElementById('w-conditions');
+  const sorted = Object.entries(condCount).sort((a,b)=>b[1]-a[1]);
+  const maxC = sorted[0][1];
+  condEl.innerHTML = sorted.map(([cond, cnt])=>{
+    const pct = Math.round((cnt/maxC)*100);
+    const pctOfTotal = Math.round((cnt/data.length)*100);
+    return `<div class="trow">
+      <div class="tlbl">${conditionIcon(cond)} ${cond}</div>
+      <div class="twrap"><div class="tfill" style="width:${Math.max(5,pct)}%;background:var(--blue)35;border:1px solid var(--blue)70;color:var(--blue)">${cnt} day${cnt!==1?'s':''}</div></div>
+      <div class="tmeta">${pctOfTotal}%</div>
+    </div>`;
+  }).join('');
+
+  // Daily history table
+  const hist = document.getElementById('w-history');
+  hist.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.82rem">
+    <thead><tr style="color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em">
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)">Date</th>
+      <th style="padding:6px 8px;border-bottom:1px solid var(--border)">Condition</th>
+      <th style="padding:6px 8px;border-bottom:1px solid var(--border)">Temp</th>
+      <th style="padding:6px 8px;border-bottom:1px solid var(--border)">Humidity</th>
+      <th style="padding:6px 8px;border-bottom:1px solid var(--border)">Wind</th>
+      <th style="padding:6px 8px;border-bottom:1px solid var(--border)">UV</th>
+      <th style="padding:6px 8px;border-bottom:1px solid var(--border)">AQI</th>
+    </tr></thead>
+    <tbody>
+    ${[...data].reverse().map(r=>`<tr style="border-bottom:1px solid var(--border)22">
+      <td style="padding:7px 8px;color:var(--muted);font-size:.78rem">${formatDate(r.date).split(',')[0]+', '+r.date.slice(5)}</td>
+      <td style="padding:7px 8px;text-align:center">${conditionIcon(r.condition)} <span style="font-size:.76rem;color:var(--muted)">${r.condition||'—'}</span></td>
+      <td style="padding:7px 8px;text-align:center;font-weight:600;color:${r.temperature>20?'var(--warn)':r.temperature<8?'var(--blue)':'var(--text)'}">${r.temperature!=null?r.temperature+'°':'—'}</td>
+      <td style="padding:7px 8px;text-align:center;color:var(--muted)">${r.humidity!=null?r.humidity+'%':'—'}</td>
+      <td style="padding:7px 8px;text-align:center;color:var(--muted)">${r.wind_speed!=null?r.wind_speed+' km/h':'—'}</td>
+      <td style="padding:7px 8px;text-align:center;color:${r.uv_index>=8?'var(--danger)':r.uv_index>=5?'var(--warn)':'var(--muted)'}">${r.uv_index!=null?r.uv_index:'—'}</td>
+      <td style="padding:7px 8px;text-align:center;color:${r.aqi>100?'var(--warn)':r.aqi>50?'var(--mono)':'var(--muted)'}">${r.aqi||'—'}</td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function drawWeatherLineChart(id, data, lineA, lineB){
+  const canvas = document.getElementById(id);
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio||1;
+  const rc  = canvas.parentElement.getBoundingClientRect();
+  const W = rc.width||300, H = rc.height||160;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  const P = {t:14, r:40, b:28, l:38};
+  const CW = W-P.l-P.r, CH = H-P.t-P.b;
+
+  const valsA = data.map(r=>r[lineA.key]).filter(v=>v!=null);
+  const valsB = data.map(r=>r[lineB.key]).filter(v=>v!=null);
+  if(!valsA.length) return;
+
+  const maxA = Math.max(...valsA), minA = Math.min(...valsA);
+  const maxB = valsB.length ? Math.max(...valsB) : 1;
+  const rangeA = maxA-minA || 1;
+
+  const yA = v => P.t + CH - ((v-minA)/rangeA)*CH;
+  const yB = v => P.t + CH - (v/maxB)*CH * (lineB.scale||1);
+  const xP = i => P.l + (i/(data.length-1||1))*CW;
+
+  // Grid lines
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=P.t+CH*(i/4);
+    ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(P.l+CW,y); ctx.stroke();
+  }
+
+  // Line B (behind)
+  if(valsB.length){
+    ctx.beginPath();
+    data.forEach((r,i)=>{ const v=r[lineB.key]; if(v==null) return; i===0||ctx.moveTo(xP(i),yB(v));ctx.lineTo(xP(i),yB(v)); });
+    ctx.strokeStyle=lineB.color+'55'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Line A (filled)
+  ctx.beginPath();
+  data.forEach((r,i)=>{ const v=r[lineA.key]; if(v==null) return; i===0?ctx.moveTo(xP(i),yA(v)):ctx.lineTo(xP(i),yA(v)); });
+  ctx.strokeStyle=lineA.color; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
+
+  // Dots A
+  data.forEach((r,i)=>{ const v=r[lineA.key]; if(v==null) return;
+    ctx.beginPath(); ctx.arc(xP(i),yA(v),3,0,Math.PI*2);
+    ctx.fillStyle=lineA.color; ctx.fill();
+  });
+
+  // Y axis labels
+  ctx.fillStyle='#7d8590'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='right';
+  ctx.fillText(Math.round(maxA)+lineA.label, P.l-3, P.t+9);
+  ctx.fillText(Math.round(minA)+lineA.label, P.l-3, P.t+CH);
+  ctx.textAlign='left'; ctx.fillStyle=lineB.color+'99';
+  if(valsB.length) ctx.fillText(Math.round(maxB)+lineB.label, P.l+CW+4, P.t+9);
+
+  // X labels
+  const step = Math.ceil(data.length/Math.min(data.length,Math.floor(CW/50)));
+  ctx.fillStyle='#7d8590'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='center';
+  data.forEach((r,i)=>{ if(i%step!==0&&i!==data.length-1) return; ctx.fillText(r.date.slice(5),xP(i),H-P.b+12); });
 }
 
 // ── Auto-login ───────────────────────────────────────────────────
