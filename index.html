@@ -290,6 +290,42 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
   .modal{border-radius:24px 24px 0 0}
   .flash{left:14px;right:14px;text-align:center}
 }
+/* ── IBD / Gut tracker ──────────────────────────────────────── */
+.bristol-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:8px 0 14px}
+.btype{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;font-size:.68rem;color:var(--muted);text-align:center;min-height:64px;user-select:none;-webkit-tap-highlight-color:transparent}
+.btype .bnum{font-size:1.1rem;font-weight:700;line-height:1}
+.btype .bicon{font-size:1.1rem;line-height:1}
+.btype.on{border-color:var(--teal);background:var(--teal-lo);color:var(--teal)}
+.btype:hover{border-color:var(--teal);background:var(--teal-lo)}
+.scale-row{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.scale-row label{font-size:.71rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0;min-width:60px}
+.scale-dots{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+.sdot{width:34px;height:34px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:700;color:var(--muted);transition:all .15s;flex-shrink:0;min-width:34px;min-height:34px}
+.sdot:hover{transform:scale(1.1)}
+.sdot.on{border-color:currentColor}
+.blood-toggle{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;font-size:.9rem;font-weight:500;user-select:none;-webkit-tap-highlight-color:transparent;min-height:48px;width:100%}
+.blood-toggle.yes{border-color:var(--danger);background:rgba(248,81,73,.1);color:var(--danger)}
+.blood-toggle .bt-dot{width:12px;height:12px;border-radius:50%;background:var(--border);transition:background .2s;flex-shrink:0}
+.blood-toggle.yes .bt-dot{background:var(--danger)}
+.gut-entry{display:flex;align-items:flex-start;gap:9px;padding:10px 0;border-bottom:1px solid var(--border)}
+.gut-entry:last-child{border-bottom:none}
+.gut-time{color:var(--muted);font-size:.77rem;flex-shrink:0;min-width:42px;padding-top:3px}
+.gut-body{flex:1;min-width:0}
+.gut-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px}
+.gbadge{padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600;border:1px solid transparent}
+.gbadge.blood{background:rgba(248,81,73,.15);border-color:rgba(248,81,73,.4);color:var(--danger)}
+.gbadge.no-blood{background:rgba(63,185,80,.1);border-color:rgba(63,185,80,.3);color:var(--pf-good)}
+.gbadge.bristol{background:var(--teal-lo);border-color:rgba(45,212,191,.4);color:var(--teal)}
+.gbadge.pain{background:rgba(240,136,62,.12);border-color:rgba(240,136,62,.35);color:var(--warn)}
+.gbadge.urgency{background:rgba(88,166,255,.12);border-color:rgba(88,166,255,.35);color:var(--blue)}
+.gut-desc{font-size:.8rem;color:var(--muted);line-height:1.45}
+.ibd-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+.ibd-trend-wrap{display:flex;align-items:flex-end;gap:2px;height:56px}
+.ibd-bar{flex:1;border-radius:3px 3px 0 0;min-height:3px}
+@media(max-width:700px){.ibd-stat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.bristol-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:380px){.bristol-grid{grid-template-columns:repeat(3,1fr)}}
+
 @media(max-width:480px){
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .sc .sv{font-size:1.6rem}
@@ -324,6 +360,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
       <button class="nav-btn" onclick="showTab('graphs',this)"><span class="ndot" style="background:var(--warn)"></span>Graphs</button>
       <button class="nav-btn" onclick="showTab('analytics',this)"><span class="ndot" style="background:var(--pink)"></span>Analytics</button>
       <button class="nav-btn" onclick="showTab('weather',this)"><span class="ndot" style="background:var(--blue)"></span>Weather</button>
+      <button class="nav-btn" onclick="showTab('gut',this)"><span class="ndot" style="background:var(--danger)"></span>Gut</button>
     </nav>
     <div class="hdr-right">
       <span id="today-label"></span>
@@ -657,6 +694,125 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
       </div>
     </div>
 
+    <!-- GUT / IBD TAB -->
+    <div id="tab-gut" class="tab-panel">
+      <div class="an-hdr">
+        <h2>🩺 Gut Tracker</h2>
+        <div class="rsel">
+          <button onclick="setGutRange(7,this)">7d</button>
+          <button class="active" onclick="setGutRange(30,this)">30d</button>
+          <button onclick="setGutRange(90,this)">90d</button>
+          <button onclick="setGutRange(0,this)">All</button>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="ibd-stat-grid" id="gut-stat-grid">
+        <div class="sc" id="gsc-today"><div class="sl">Today</div><div class="sv">—</div><div class="ss">times</div></div>
+        <div class="sc" id="gsc-blood"><div class="sl">Blood today</div><div class="sv">—</div><div class="ss">—</div></div>
+        <div class="sc" id="gsc-avg"><div class="sl">Daily avg</div><div class="sv">—</div><div class="ss">this period</div></div>
+        <div class="sc" id="gsc-blood-days"><div class="sl">Blood days</div><div class="sv">—</div><div class="ss">this period</div></div>
+      </div>
+
+      <!-- Log entry card -->
+      <div class="card" style="margin-bottom:14px">
+        <h3>🩺 Log toilet visit</h3>
+
+        <div class="frow" style="margin-bottom:10px">
+          <div class="fg" style="max-width:110px"><label>Time</label><input type="time" id="gut-time"/></div>
+          <div class="fg" style="max-width:140px">
+            <label>Description</label>
+            <input type="text" id="gut-desc" placeholder="e.g. loose, mucus, crampy"/>
+          </div>
+        </div>
+
+        <!-- Blood toggle -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:.71rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Blood present?</div>
+          <div class="blood-toggle" id="blood-toggle" onclick="toggleBlood()">
+            <div class="bt-dot"></div>
+            <span id="blood-toggle-label">No blood</span>
+          </div>
+        </div>
+
+        <!-- Bristol Stool Scale -->
+        <div style="font-size:.71rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Bristol stool scale <span style="font-weight:400;text-transform:none">(tap to select)</span></div>
+        <div class="bristol-grid" id="bristol-grid">
+          <div class="btype" data-b="1" onclick="selectBristol(1)"><div class="bnum">1</div><div class="bicon">🪨</div><div>Hard lumps</div></div>
+          <div class="btype" data-b="2" onclick="selectBristol(2)"><div class="bnum">2</div><div class="bicon">🥚</div><div>Lumpy</div></div>
+          <div class="btype" data-b="3" onclick="selectBristol(3)"><div class="bnum">3</div><div class="bicon">🌭</div><div>Cracked</div></div>
+          <div class="btype" data-b="4" onclick="selectBristol(4)"><div class="bnum">4</div><div class="bicon">🐍</div><div>Smooth</div></div>
+          <div class="btype" data-b="5" onclick="selectBristol(5)"><div class="bnum">5</div><div class="bicon">💧</div><div>Soft blobs</div></div>
+          <div class="btype" data-b="6" onclick="selectBristol(6)"><div class="bnum">6</div><div class="bicon">🌊</div><div>Fluffy</div></div>
+          <div class="btype" data-b="7" onclick="selectBristol(7)"><div class="bnum">7</div><div class="bicon">💦</div><div>Watery</div></div>
+        </div>
+
+        <!-- Urgency & Pain scales -->
+        <div class="scale-row">
+          <label>Urgency</label>
+          <div class="scale-dots" id="urgency-dots">
+            <div class="sdot" data-v="1" data-group="urgency" onclick="selectScale('urgency',1)" style="color:var(--pf-good)">1</div>
+            <div class="sdot" data-v="2" data-group="urgency" onclick="selectScale('urgency',2)" style="color:var(--pf-good)">2</div>
+            <div class="sdot" data-v="3" data-group="urgency" onclick="selectScale('urgency',3)" style="color:var(--pf-fair)">3</div>
+            <div class="sdot" data-v="4" data-group="urgency" onclick="selectScale('urgency',4)" style="color:var(--warn)">4</div>
+            <div class="sdot" data-v="5" data-group="urgency" onclick="selectScale('urgency',5)" style="color:var(--danger)">5</div>
+          </div>
+          <span id="urgency-label" style="font-size:.78rem;color:var(--muted);min-width:70px">Not set</span>
+        </div>
+
+        <div class="scale-row">
+          <label>Pain</label>
+          <div class="scale-dots" id="pain-dots">
+            <div class="sdot" data-v="1" data-group="pain" onclick="selectScale('pain',1)" style="color:var(--pf-good)">1</div>
+            <div class="sdot" data-v="2" data-group="pain" onclick="selectScale('pain',2)" style="color:var(--pf-good)">2</div>
+            <div class="sdot" data-v="3" data-group="pain" onclick="selectScale('pain',3)" style="color:var(--pf-fair)">3</div>
+            <div class="sdot" data-v="4" data-group="pain" onclick="selectScale('pain',4)" style="color:var(--warn)">4</div>
+            <div class="sdot" data-v="5" data-group="pain" onclick="selectScale('pain',5)" style="color:var(--danger)">5</div>
+          </div>
+          <span id="pain-label" style="font-size:.78rem;color:var(--muted);min-width:70px">Not set</span>
+        </div>
+
+        <div class="fg" style="margin-bottom:13px">
+          <label>Extra notes (optional)</label>
+          <textarea id="gut-notes" rows="2" placeholder="e.g. cramping beforehand, food triggers, medication taken"></textarea>
+        </div>
+
+        <button class="btn-add" style="background:var(--danger);color:#fff;width:100%" onclick="logGut()">+ Log Visit</button>
+      </div>
+
+      <!-- Today's entries -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="sec-hdr"><h3 style="font-family:var(--font-serif);font-size:1rem;font-weight:400">Today's log</h3></div>
+        <div id="gut-today-list"><div class="loading"><div class="spin"></div>Loading…</div></div>
+      </div>
+
+      <!-- Daily frequency chart -->
+      <div class="acard" style="margin-bottom:12px">
+        <h4>Daily toilet visits</h4>
+        <p class="sub">Frequency over selected period — red bars indicate days with blood</p>
+        <div style="position:relative;width:100%;height:130px;margin-top:12px">
+          <canvas id="gut-chart" style="display:block;width:100%;height:130px"></canvas>
+        </div>
+      </div>
+
+      <!-- Hourly pattern -->
+      <div class="acard" style="margin-bottom:12px">
+        <h4>Time-of-day pattern</h4>
+        <p class="sub">When visits most commonly occur</p>
+        <div style="position:relative;width:100%;height:120px;margin-top:10px">
+          <canvas id="gut-hourly-chart" style="display:block;width:100%;height:120px"></canvas>
+        </div>
+      </div>
+
+      <!-- History table -->
+      <div class="acard">
+        <h4>Full history</h4>
+        <div id="gut-history" style="margin-top:10px;overflow-x:auto">
+          <div class="loading"><div class="spin"></div>Loading…</div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Mobile bottom nav -->
@@ -667,6 +823,7 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
       <button class="mb" onclick="showTab('graphs',this)" data-tab="graphs"><span class="mi">📈</span><span>Graphs</span></button>
       <button class="mb" onclick="showTab('analytics',this)" data-tab="analytics"><span class="mi">🔬</span><span>Insights</span></button>
       <button class="mb" onclick="showTab('weather',this)" data-tab="weather"><span class="mi">🌤️</span><span>Weather</span></button>
+      <button class="mb" onclick="showTab('gut',this)" data-tab="gut"><span class="mi">🩺</span><span>Gut</span></button>
     </div>
   </nav>
 </div>
@@ -1286,7 +1443,7 @@ async function exportData(){
     // Fetch everything — use a wide date range
     const from='2020-01-01', to=today();
     st.innerHTML='<div class="spin"></div>Loading peak flow records…';
-    const [pf, blue, pink, notes, timedNotes, analytics, mono, spir, customRaw, weatherRaw, sleepRaw] = await Promise.all([
+    const [pf, blue, pink, notes, timedNotes, analytics, mono, spir, customRaw, weatherRaw, sleepRaw, gutRaw] = await Promise.all([
       call('GET',`/api/peakflow?from=${from}&to=${to}`),
       call('GET',`/api/inhaler?from=${from}&to=${to}`),
       call('GET',`/api/pink?from=${from}&to=${to}`),
@@ -1298,6 +1455,7 @@ async function exportData(){
       call('GET',`/api/customlog?from=${from}&to=${to}`).catch(()=>[]),
       call('GET',`/api/weather?from=${from}&to=${to}`).catch(()=>[]),
       call('GET',`/api/sleep?from=${from}&to=${to}`).catch(()=>[]),
+      call('GET',`/api/gut?from=${from}&to=${to}`).catch(()=>[]),
     ]);
 
     st.innerHTML='<div class="spin"></div>Building report…';
@@ -1312,6 +1470,7 @@ async function exportData(){
     const customRawArr = Array.isArray(customRaw) ? customRaw : [];
     const weatherArr = Array.isArray(weatherRaw) ? weatherRaw : [];
     const sleepArr = Array.isArray(sleepRaw) ? sleepRaw : [];
+    const gutArr = Array.isArray(gutRaw) ? gutRaw : [];
 
     // Summary stats
     const pfVals = pfArr.map(r=>r.reading);
@@ -1524,6 +1683,24 @@ async function exportData(){
       lines.push('');
     }
 
+    // Gut / IBD log
+    if(gutArr.length){
+      const bloodEvents = gutArr.filter(r=>r.blood);
+      const bloodDays = new Set(bloodEvents.map(r=>r.date)).size;
+      const avgPerDay = (gutArr.length / Math.max(1,spanDays)).toFixed(1);
+      lines.push('GUT / IBD LOG (all time)');
+      lines.push('──────────────────────────');
+      lines.push(`Total visits: ${gutArr.length} (avg ${avgPerDay}/day)`);
+      lines.push(`Blood present: ${bloodEvents.length} visits, ${bloodDays} days`);
+      lines.push('');
+      lines.push('Date       | Time  | Blood | Bristol | Urgency | Pain | Description');
+      lines.push('-----------|-------|-------|---------|---------|------|------------');
+      gutArr.forEach(r=>lines.push(
+        `${r.date} | ${r.time} | ${r.blood?'YES  ':'no   '} | ${r.bristol_scale!=null?'B'+r.bristol_scale+'      ':'—      '} | ${r.urgency||'—'}/5     | ${r.pain||'—'}/5  | ${[r.description,r.notes].filter(Boolean).join(' · ')}`
+      ));
+      lines.push('');
+    }
+
     lines.push('═══════════════════════════════════════════════════════');
     lines.push('SUGGESTED PROMPT FOR CLAUDE:');
     lines.push('──────────────────────────────');
@@ -1533,7 +1710,8 @@ async function exportData(){
     lines.push('3. Comment on my preventer inhaler adherence and timing');
     lines.push('4. Flag any concerning periods or readings');
     lines.push('5. Give me practical, actionable recommendations');
-    lines.push('6. Note anything I should discuss with my GP or asthma nurse');
+    lines.push('6. Analyse my gut/IBD log — flag blood events, frequency spikes, and patterns');
+    lines.push('7. Note anything I should discuss with my GP, asthma nurse or gastroenterologist');
     lines.push('═══════════════════════════════════════════════════════');
 
     exportText = lines.join('\n');
@@ -1606,6 +1784,7 @@ function showTab(name,btn){
   if(name==='graphs')    renderGraph().catch(e=>console.warn('graph',e));
   if(name==='analytics') renderAnalytics().catch(e=>console.warn('analytics',e));
   if(name==='weather')   renderWeatherTab().catch(e=>console.warn('weather',e));
+  if(name==='gut')       renderGutTab().catch(e=>console.warn('gut',e));
 }
 
 // ── Symptoms ────────────────────────────────────────────────────
@@ -3050,6 +3229,333 @@ function drawWeatherLineChart(id, data, lineA, lineB){
   const step = Math.ceil(data.length/Math.min(data.length,Math.floor(CW/50)));
   ctx.fillStyle='#7d8590'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='center';
   data.forEach((r,i)=>{ if(i%step!==0&&i!==data.length-1) return; ctx.fillText(r.date.slice(5),xP(i),H-P.b+12); });
+}
+
+// ── Gut / IBD Tracker ───────────────────────────────────────────
+let gutRange = 30;
+let gutBlood = false;
+let gutBristol = null;
+let gutUrgency = 0;
+let gutPain = 0;
+
+function toggleBlood(){
+  gutBlood = !gutBlood;
+  const el = document.getElementById('blood-toggle');
+  const lbl = document.getElementById('blood-toggle-label');
+  if(gutBlood){
+    el.classList.add('yes');
+    lbl.textContent = '⚠️ Blood present';
+  } else {
+    el.classList.remove('yes');
+    lbl.textContent = 'No blood';
+  }
+}
+
+function selectBristol(n){
+  gutBristol = gutBristol === n ? null : n;
+  document.querySelectorAll('.btype').forEach(el=>{
+    el.classList.toggle('on', +el.dataset.b === gutBristol);
+  });
+}
+
+const URGENCY_LABELS = ['','Mild','Moderate','Urgent','Very urgent','Emergency'];
+const PAIN_LABELS    = ['','Minimal','Mild','Moderate','Severe','Extreme'];
+
+function selectScale(group, v){
+  if(group === 'urgency'){
+    gutUrgency = gutUrgency === v ? 0 : v;
+    document.querySelectorAll('#urgency-dots .sdot').forEach(el=>{
+      el.classList.toggle('on', +el.dataset.v === gutUrgency);
+    });
+    const lbl = document.getElementById('urgency-label');
+    lbl.textContent = gutUrgency ? URGENCY_LABELS[gutUrgency] : 'Not set';
+    lbl.style.color = gutUrgency >= 4 ? 'var(--danger)' : gutUrgency >= 3 ? 'var(--warn)' : 'var(--muted)';
+  } else {
+    gutPain = gutPain === v ? 0 : v;
+    document.querySelectorAll('#pain-dots .sdot').forEach(el=>{
+      el.classList.toggle('on', +el.dataset.v === gutPain);
+    });
+    const lbl = document.getElementById('pain-label');
+    lbl.textContent = gutPain ? PAIN_LABELS[gutPain] : 'Not set';
+    lbl.style.color = gutPain >= 4 ? 'var(--danger)' : gutPain >= 3 ? 'var(--warn)' : 'var(--muted)';
+  }
+}
+
+function resetGutForm(){
+  gutBlood = false; gutBristol = null; gutUrgency = 0; gutPain = 0;
+  const bt = document.getElementById('blood-toggle');
+  if(bt){ bt.classList.remove('yes'); document.getElementById('blood-toggle-label').textContent = 'No blood'; }
+  document.querySelectorAll('.btype').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.sdot').forEach(el=>el.classList.remove('on'));
+  const ul = document.getElementById('urgency-label'), pl = document.getElementById('pain-label');
+  if(ul){ ul.textContent='Not set'; ul.style.color=''; }
+  if(pl){ pl.textContent='Not set'; pl.style.color=''; }
+  const gd = document.getElementById('gut-desc'), gn = document.getElementById('gut-notes');
+  if(gd) gd.value = '';
+  if(gn) gn.value = '';
+  const gt = document.getElementById('gut-time');
+  if(gt) gt.value = nowTime();
+}
+
+async function logGut(){
+  const time = document.getElementById('gut-time').value || nowTime();
+  const description = document.getElementById('gut-desc').value.trim();
+  const notes = document.getElementById('gut-notes').value.trim();
+  await call('POST', '/api/gut', {
+    date: today(), time,
+    blood: gutBlood ? 1 : 0,
+    bristol_scale: gutBristol,
+    urgency: gutUrgency,
+    pain: gutPain,
+    description,
+    notes,
+  });
+  flash('Gut visit logged ✓');
+  resetGutForm();
+  await loadGutToday();
+  updateGutStatCards();
+  if(curTab === 'gut') renderGutCharts();
+}
+
+async function delGut(id){
+  await call('DELETE', `/api/gut?id=${id}`);
+  flash('Removed');
+  await loadGutToday();
+  updateGutStatCards();
+  if(curTab === 'gut') renderGutCharts();
+}
+
+function gutEntryHTML(r){
+  const bristolDesc = ['','Hard separate lumps','Lumpy sausage','Cracked sausage','Smooth sausage','Soft blobs','Fluffy pieces','Watery'];
+  const badges = [];
+  if(r.blood){
+    badges.push('<span class="gbadge blood">🩸 Blood</span>');
+  } else {
+    badges.push('<span class="gbadge no-blood">✓ No blood</span>');
+  }
+  if(r.bristol_scale) badges.push(`<span class="gbadge bristol">B${r.bristol_scale} — ${bristolDesc[r.bristol_scale]||''}</span>`);
+  if(r.urgency)  badges.push(`<span class="gbadge urgency">Urgency ${r.urgency}/5</span>`);
+  if(r.pain)     badges.push(`<span class="gbadge pain">Pain ${r.pain}/5</span>`);
+  const desc = [r.description, r.notes].filter(Boolean).join(' · ');
+  return `<div class="gut-entry">
+    <div class="gut-time">${r.time}</div>
+    <div class="gut-body">
+      <div class="gut-badges">${badges.join('')}</div>
+      ${desc ? `<div class="gut-desc">${desc}</div>` : ''}
+    </div>
+    <button class="btn-sm" onclick="delGut(${r.id})">✕</button>
+  </div>`;
+}
+
+async function loadGutToday(){
+  const t = today();
+  try {
+    const res = await call('GET', `/api/gut?from=${t}&to=${t}`);
+    const entries = Array.isArray(res) ? res : [];
+    const el = document.getElementById('gut-today-list');
+    if(!el) return;
+    if(!entries.length){
+      el.innerHTML = '<div class="empty">No visits logged today</div>';
+    } else {
+      el.innerHTML = entries.map(gutEntryHTML).join('');
+    }
+    return entries;
+  } catch(e){ return []; }
+}
+
+async function updateGutStatCards(){
+  const t = today();
+  const from = gutRange === 0 ? '2000-01-01' : daysAgo(gutRange - 1);
+  try {
+    const [todayRes, summaryRes] = await Promise.all([
+      call('GET', `/api/gut?from=${t}&to=${t}`),
+      call('GET', `/api/gut/summary?from=${from}&to=${t}`).catch(()=>null),
+    ]);
+    const todayEntries = Array.isArray(todayRes) ? todayRes : [];
+    const todayBlood = todayEntries.some(r=>r.blood);
+    const todayCount = todayEntries.length;
+
+    const scToday = document.getElementById('gsc-today');
+    const scBlood = document.getElementById('gsc-blood');
+    const scAvg   = document.getElementById('gsc-avg');
+    const scBd    = document.getElementById('gsc-blood-days');
+
+    if(scToday){
+      scToday.querySelector('.sv').textContent = todayCount || '0';
+      scToday.querySelector('.ss').textContent = todayCount === 1 ? 'visit' : 'visits';
+      scToday.className = `sc ${todayCount > 6 ? 'bad' : todayCount > 3 ? 'warn' : 'good'}`;
+    }
+    if(scBlood){
+      scBlood.querySelector('.sv').textContent = todayBlood ? '🩸 Yes' : '✓ No';
+      scBlood.className = `sc ${todayBlood ? 'bad' : 'good'}`;
+    }
+
+    if(summaryRes && summaryRes.daily){
+      const daily = summaryRes.daily;
+      const avgPerDay = daily.length ? (daily.reduce((s,d)=>s+d.total,0)/daily.length).toFixed(1) : '—';
+      const bloodDays = summaryRes.bloodDays || 0;
+      const totalDays = daily.length;
+      if(scAvg){ scAvg.querySelector('.sv').textContent = avgPerDay; scAvg.querySelector('.ss').textContent = `per day (${totalDays}d)`; }
+      if(scBd){
+        scBd.querySelector('.sv').textContent = bloodDays;
+        scBd.querySelector('.ss').textContent = `of ${totalDays} days (${totalDays>0?Math.round(bloodDays/totalDays*100):0}%)`;
+        scBd.className = `sc ${bloodDays > totalDays*0.3 ? 'bad' : bloodDays > 0 ? 'warn' : 'good'}`;
+      }
+    }
+  } catch(e){}
+}
+
+function setGutRange(days, btn){
+  gutRange = days;
+  document.querySelectorAll('#tab-gut .rsel button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGutTab();
+}
+
+async function renderGutTab(){
+  await Promise.all([loadGutToday(), updateGutStatCards()]);
+  await renderGutCharts();
+  await renderGutHistory();
+}
+
+async function renderGutCharts(){
+  const t = today();
+  const from = gutRange === 0 ? '2000-01-01' : daysAgo(gutRange - 1);
+  try {
+    const summary = await call('GET', `/api/gut/summary?from=${from}&to=${t}`);
+    if(!summary || !summary.daily) return;
+    drawGutDailyChart(summary.daily);
+    drawGutHourlyChart(summary.hourly || []);
+  } catch(e){}
+}
+
+function drawGutDailyChart(daily){
+  const canvas = document.getElementById('gut-chart');
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth || 300;
+  const H = 130;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,W,H);
+
+  if(!daily.length){
+    ctx.fillStyle='#7d8590'; ctx.font='13px DM Sans,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('No data for this period', W/2, H/2); return;
+  }
+
+  const P = {t:14, r:8, b:26, l:30};
+  const CW = W-P.l-P.r, CH = H-P.t-P.b;
+  const maxV = Math.max(...daily.map(d=>d.total), 1);
+  const bw = Math.max(2, CW/daily.length - 2);
+
+  // Grid
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=1;
+  for(let i=0;i<=maxV;i++){
+    const y = P.t+CH - (i/maxV)*CH;
+    ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(P.l+CW,y); ctx.stroke();
+    ctx.fillStyle='#7d859099'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='right';
+    ctx.fillText(i, P.l-4, y+3);
+  }
+
+  daily.forEach((d,i)=>{
+    const x = P.l + (i/Math.max(daily.length-1,1))*CW - bw/2;
+    const barH = Math.max(2, (d.total/maxV)*CH);
+    const y = P.t+CH - barH;
+    const hasBlood = d.blood_count > 0;
+    ctx.fillStyle = hasBlood ? 'rgba(248,81,73,.55)' : 'rgba(45,212,191,.35)';
+    ctx.strokeStyle = hasBlood ? 'rgba(248,81,73,.9)' : 'rgba(45,212,191,.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x, y, bw, barH, 3); ctx.fill(); ctx.stroke();
+  });
+
+  // X labels
+  const step = Math.ceil(daily.length / Math.min(daily.length, Math.floor(CW/48)));
+  ctx.fillStyle='#7d8590'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='center';
+  daily.forEach((d,i)=>{
+    if(i%step!==0 && i!==daily.length-1) return;
+    const x = P.l + (i/Math.max(daily.length-1,1))*CW;
+    ctx.fillText(d.date.slice(5), x, H-P.b+12);
+  });
+
+  // Legend
+  ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='left';
+  ctx.fillStyle='rgba(45,212,191,.7)';
+  ctx.fillRect(P.l, H-P.b+18, 9, 7);
+  ctx.fillStyle='#7d8590'; ctx.fillText('No blood', P.l+12, H-P.b+25);
+  ctx.fillStyle='rgba(248,81,73,.7)';
+  ctx.fillRect(P.l+75, H-P.b+18, 9, 7);
+  ctx.fillStyle='#7d8590'; ctx.fillText('Blood', P.l+87, H-P.b+25);
+}
+
+function drawGutHourlyChart(hourly){
+  const canvas = document.getElementById('gut-hourly-chart');
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth || 300;
+  const H = 120;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const P = {t:10, r:8, b:22, l:28};
+  const CW = W-P.l-P.r, CH = H-P.t-P.b;
+
+  if(!hourly.length){
+    ctx.fillStyle='#7d8590'; ctx.font='12px DM Sans,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('No data yet', W/2, H/2); return;
+  }
+
+  const full = Array.from({length:24}, (_,h)=>{ const r=hourly.find(d=>d.hour===h); return{h,v:r?r.count:0}; });
+  const maxV = Math.max(...full.map(d=>d.v), 1);
+  const bw = Math.max(2, CW/24 - 1.5);
+
+  full.forEach(({h,v})=>{
+    if(!v) return;
+    const x = P.l + (h/24)*CW;
+    const barH = Math.max(2, (v/maxV)*CH);
+    const y = P.t+CH-barH;
+    ctx.fillStyle = 'rgba(45,212,191,.3)';
+    ctx.strokeStyle = 'rgba(45,212,191,.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x,y,bw,barH,2); ctx.fill(); ctx.stroke();
+  });
+
+  ctx.fillStyle='#7d8590'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='center';
+  [0,6,12,18,23].forEach(h=>{ ctx.fillText(h+'h', P.l+(h/24)*CW+bw/2, H-P.b+12); });
+  ctx.textAlign='right'; ctx.fillStyle='#7d859099';
+  ctx.fillText(maxV, P.l-3, P.t+9);
+}
+
+async function renderGutHistory(){
+  const t = today();
+  const from = gutRange === 0 ? '2000-01-01' : daysAgo(gutRange - 1);
+  const el = document.getElementById('gut-history');
+  if(!el) return;
+  try {
+    const res = await call('GET', `/api/gut?from=${from}&to=${t}`);
+    const entries = Array.isArray(res) ? [...res].reverse() : [];
+    if(!entries.length){
+      el.innerHTML = '<div class="empty">No entries for this period</div>'; return;
+    }
+    // Group by date
+    const byDate = {};
+    entries.forEach(r=>{ if(!byDate[r.date]) byDate[r.date]=[]; byDate[r.date].push(r); });
+    const datesSorted = Object.keys(byDate).sort().reverse();
+    el.innerHTML = datesSorted.map(date=>{
+      const dayEntries = byDate[date];
+      const hasBlood = dayEntries.some(r=>r.blood);
+      const dateLabel = new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+      return `<div style="margin-bottom:14px">
+        <div style="font-size:.72rem;font-weight:600;color:${hasBlood?'var(--danger)':'var(--muted)'};text-transform:uppercase;letter-spacing:.06em;padding:5px 0;border-bottom:1px solid var(--border);margin-bottom:6px">
+          ${hasBlood?'🩸 ':''} ${dateLabel} — ${dayEntries.length} visit${dayEntries.length!==1?'s':''}
+        </div>
+        ${dayEntries.map(gutEntryHTML).join('')}
+      </div>`;
+    }).join('');
+  } catch(e){ el.innerHTML = '<div class="empty">Could not load history</div>'; }
 }
 
 // ── Auto-login ───────────────────────────────────────────────────
