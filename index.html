@@ -698,11 +698,14 @@ p.sub{font-size:.79rem;color:var(--muted);margin-bottom:4px}
     <div id="tab-gut" class="tab-panel">
       <div class="an-hdr">
         <h2>🩺 Gut Tracker</h2>
-        <div class="rsel">
-          <button onclick="setGutRange(7,this)">7d</button>
-          <button class="active" onclick="setGutRange(30,this)">30d</button>
-          <button onclick="setGutRange(90,this)">90d</button>
-          <button onclick="setGutRange(0,this)">All</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-logout" onclick="importGutFromNotes(this)" title="Scan your Notes log for entries starting with 'Toilet.' and import them into the Gut tab">📥 Import from Notes</button>
+          <div class="rsel">
+            <button onclick="setGutRange(7,this)">7d</button>
+            <button class="active" onclick="setGutRange(30,this)">30d</button>
+            <button onclick="setGutRange(90,this)">90d</button>
+            <button onclick="setGutRange(0,this)">All</button>
+          </div>
         </div>
       </div>
 
@@ -3556,6 +3559,104 @@ async function renderGutHistory(){
       </div>`;
     }).join('');
   } catch(e){ el.innerHTML = '<div class="empty">Could not load history</div>'; }
+}
+
+// ── Gut: import from Notes ───────────────────────────────────────
+async function importGutFromNotes(btn){
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Scanning notes…';
+
+  try {
+    // 1. Fetch all timed notes
+    const notes = await call('GET', `/api/timednotes?from=2000-01-01&to=${today()}`);
+    const all = Array.isArray(notes) ? notes : [];
+
+    // Filter notes where the note text starts with "toilet" (case-insensitive)
+    const toiletNotes = all.filter(n => {
+      const txt = (n.note || '').trim().toLowerCase();
+      return txt.startsWith('toilet');
+    });
+
+    if(!toiletNotes.length){
+      flash('No "Toilet." notes found to import');
+      btn.disabled = false; btn.textContent = orig;
+      return;
+    }
+
+    // 2. Fetch existing gut entries so we can avoid duplicates
+    //    Match on date + time (exact) to detect dupes
+    const existing = await call('GET', `/api/gut?from=2000-01-01&to=${today()}`);
+    const existingSet = new Set(
+      (Array.isArray(existing) ? existing : []).map(r => `${r.date}|${r.time}`)
+    );
+
+    // 3. Parse each toilet note into a gut entry
+    function parseGutFromNote(n){
+      const raw = (n.note || '').trim();
+      // Strip leading "Toilet." / "toilet." prefix
+      const body = raw.replace(/^toilet\.?\s*/i, '').trim();
+      const lower = body.toLowerCase();
+
+      // Blood detection
+      const blood = /\bblood\b|\bbleeding\b/.test(lower) ? 1 : 0;
+
+      // Bristol scale heuristics
+      let bristol = null;
+      if(/\bliquid\b|\bwatery\b/.test(lower))            bristol = 7;
+      else if(/\bdiharea\b|\bdiarrhea\b|\bdiarrhoea\b/.test(lower)) bristol = 7;
+      else if(/\bfluffy\b|\bpieces\b/.test(lower))       bristol = 6;
+      else if(/\bsoft\b|\bblobs\b/.test(lower))          bristol = 5;
+      else if(/\bmucus\b/.test(lower))                   bristol = 6;
+
+      // Description: use the remaining note body (capped at 200 chars)
+      const description = body.length > 0 ? body.slice(0, 200) : null;
+
+      return { blood, bristol_scale: bristol, description, urgency: 0, pain: 0, notes: null };
+    }
+
+    // 4. Import, skipping duplicates
+    btn.textContent = `⏳ Importing 0/${toiletNotes.length}…`;
+    let imported = 0, skipped = 0;
+
+    for(let i = 0; i < toiletNotes.length; i++){
+      const n = toiletNotes[i];
+      const key = `${n.date}|${n.time}`;
+      if(existingSet.has(key)){ skipped++; continue; }
+
+      const parsed = parseGutFromNote(n);
+      try {
+        await call('POST', '/api/gut', {
+          date: n.date,
+          time: n.time,
+          blood: parsed.blood,
+          bristol_scale: parsed.bristol_scale,
+          urgency: parsed.urgency,
+          pain: parsed.pain,
+          description: parsed.description,
+          notes: parsed.notes,
+        });
+        existingSet.add(key);
+        imported++;
+      } catch(e){ skipped++; }
+
+      btn.textContent = `⏳ Importing ${i+1}/${toiletNotes.length}…`;
+      // Small pause to avoid hammering the worker
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    flash(`Imported ${imported} gut entries ✓${skipped ? ` (${skipped} skipped)` : ''}`);
+    btn.textContent = `✅ Done! (${imported} imported)`;
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 4000);
+
+    // Refresh the gut tab
+    await renderGutTab();
+
+  } catch(e){
+    flash('Import failed — check console');
+    console.error('importGutFromNotes error:', e);
+    btn.disabled = false; btn.textContent = orig;
+  }
 }
 
 // ── Auto-login ───────────────────────────────────────────────────
